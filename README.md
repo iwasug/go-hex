@@ -209,7 +209,7 @@ This project follows **Hexagonal Architecture** (also known as Ports and Adapter
 
 ## Prerequisites
 
-- Go 1.25 or higher
+- Go 1.23 or higher
 - PostgreSQL 14 or higher
 - Redis 7 or higher (optional, for caching)
 - Docker & Docker Compose (optional, for containerized deployment)

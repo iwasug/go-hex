@@ -1,6 +1,6 @@
 module golang-chi-hexagonal-base
 
-go 1.25.1
+go 1.23
 
 require (
 	github.com/go-chi/chi/v5 v5.2.3
