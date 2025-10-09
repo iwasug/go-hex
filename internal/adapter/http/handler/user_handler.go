@@ -27,7 +27,24 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 // List handles listing users with search, sorting, and pagination
-// GET /api/v1/users
+// @Summary List users
+// @Description Get a paginated list of users with optional search, sorting, and filtering
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param search query string false "Search by name or email"
+// @Param order_by query string false "Sort field (name, email, created_at)"
+// @Param order query string false "Sort direction (asc, desc)"
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Param include_deleted query boolean false "Include deleted users (admin only)"
+// @Success 200 {object} response.PaginatedResponse "List of users"
+// @Failure 400 {object} response.ErrorResponse "Invalid parameters"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:read permission"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users [get]
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	search := r.URL.Query().Get("search")
@@ -91,19 +108,33 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return paginated response
-	respondJSON(w, http.StatusOK, response.PaginatedResponse{
-		Data: userResponses,
-		Pagination: response.Pagination{
+	respondJSON(w, http.StatusOK, response.NewSuccessPaginatedResponse(
+		"Users retrieved successfully",
+		userResponses,
+		response.Pagination{
 			Total:      result.Total,
 			Page:       result.Page,
 			Limit:      result.Limit,
 			TotalPages: result.TotalPages,
 		},
-	})
+	))
 }
 
 // GetByID handles retrieving a user by ID
-// GET /api/v1/users/:id
+// @Summary Get user by ID
+// @Description Retrieve detailed information about a specific user
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200 {object} response.UserResponse "User details"
+// @Failure 400 {object} response.ErrorResponse "Invalid user ID"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:read permission"
+// @Failure 404 {object} response.ErrorResponse "User not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{id} [get]
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -125,11 +156,26 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, toUserResponse(user))
+	respondSuccess(w, http.StatusOK, "User retrieved successfully", toUserResponse(user))
 }
 
 // Update handles updating a user
-// PUT /api/v1/users/:id
+// @Summary Update user
+// @Description Update user information (name and email)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param request body request.UpdateUserRequest true "User update data"
+// @Success 200 {object} response.UserResponse "Updated user"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:write permission"
+// @Failure 404 {object} response.ErrorResponse "User not found"
+// @Failure 409 {object} response.ErrorResponse "Email already exists"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{id} [put]
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -183,11 +229,24 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, toUserResponse(user))
+	respondSuccess(w, http.StatusOK, "User retrieved successfully", toUserResponse(user))
 }
 
 // Delete handles soft deleting a user
-// DELETE /api/v1/users/:id
+// @Summary Delete user
+// @Description Soft delete a user (can be restored by admin)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200 {object} response.MessageResponse "User deleted successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid user ID"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:delete permission"
+// @Failure 404 {object} response.ErrorResponse "User not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{id} [delete]
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -216,13 +275,26 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "User deleted successfully",
-	})
+	respondSuccess(w, http.StatusOK, "User deleted successfully", nil)
 }
 
 // AssignRole handles assigning a role to a user
-// POST /api/v1/users/:id/roles
+// @Summary Assign role to user
+// @Description Assign a role to a user for permission management
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param request body request.AssignRoleRequest true "Role assignment data"
+// @Success 200 {object} response.MessageResponse "Role assigned successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:write permission"
+// @Failure 404 {object} response.ErrorResponse "User or role not found"
+// @Failure 409 {object} response.ErrorResponse "Role already assigned"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{id}/roles [post]
 func (h *UserHandler) AssignRole(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
 
@@ -267,13 +339,25 @@ func (h *UserHandler) AssignRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "Role assigned successfully",
-	})
+	respondSuccess(w, http.StatusOK, "Role assigned successfully", nil)
 }
 
 // RemoveRole handles removing a role from a user
-// DELETE /api/v1/users/:id/roles/:role_id
+// @Summary Remove role from user
+// @Description Remove an assigned role from a user
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param role_id path string true "Role ID"
+// @Success 200 {object} response.MessageResponse "Role removed successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid user ID or role ID"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:write permission"
+// @Failure 404 {object} response.ErrorResponse "User or role not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{id}/roles/{role_id} [delete]
 func (h *UserHandler) RemoveRole(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
 	roleID := chi.URLParam(r, "role_id")
@@ -304,7 +388,5 @@ func (h *UserHandler) RemoveRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "Role removed successfully",
-	})
+	respondSuccess(w, http.StatusOK, "Role removed successfully", nil)
 }

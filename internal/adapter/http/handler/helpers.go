@@ -4,20 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"golang-chi-hexagonal-base/internal/adapter/http/response"
 	"golang-chi-hexagonal-base/internal/pkg/validator"
 )
-
-// ErrorResponse represents an error response
-type ErrorResponse struct {
-	Error ErrorDetail `json:"error"`
-}
-
-// ErrorDetail represents error details
-type ErrorDetail struct {
-	Code    string      `json:"code"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
-}
 
 // respondJSON sends a JSON response
 func respondJSON(w http.ResponseWriter, statusCode int, data interface{}) {
@@ -26,18 +15,24 @@ func respondJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
+// respondSuccess sends a success response
+func respondSuccess(w http.ResponseWriter, statusCode int, message string, data interface{}) {
+	respondJSON(w, statusCode, response.NewSuccessResponse(message, data))
+}
+
 // respondError sends an error response
-func respondError(w http.ResponseWriter, statusCode int, code, message string, details interface{}) {
-	respondJSON(w, statusCode, ErrorResponse{
-		Error: ErrorDetail{
-			Code:    code,
-			Message: message,
-			Details: details,
-		},
-	})
+func respondError(w http.ResponseWriter, statusCode int, code, message string, details map[string]interface{}) {
+	errorDetail := response.ErrorDetail{
+		Code:    code,
+		Message: message,
+		Details: details,
+	}
+	respondJSON(w, statusCode, response.NewErrorResponseWrapper(errorDetail))
 }
 
 // respondValidationError sends a validation error response
 func respondValidationError(w http.ResponseWriter, validationErrors *validator.ValidationErrors) {
-	respondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Validation failed", validationErrors.Errors)
+	respondError(w, http.StatusBadRequest, response.ErrCodeValidation, "Validation failed", map[string]interface{}{
+		"fields": validationErrors.Errors,
+	})
 }

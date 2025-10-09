@@ -24,15 +24,15 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-
 // NewEmail creates a new Email value object with validation
 func NewEmail(email string) (*Email, error) {
 	email = strings.TrimSpace(email)
-	
+
 	if email == "" {
 		return nil, ErrEmptyEmail
 	}
-	
+
 	if !emailRegex.MatchString(email) {
 		return nil, ErrInvalidEmail
 	}
-	
+
 	return &Email{value: strings.ToLower(email)}, nil
 }
 

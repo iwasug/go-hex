@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-// responseWriter wraps http.ResponseWriter to capture status code
-type responseWriter struct {
+// loggerResponseWriter wraps http.ResponseWriter to capture status code
+type loggerResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 	written    bool
 }
 
-func (rw *responseWriter) WriteHeader(statusCode int) {
+func (rw *loggerResponseWriter) WriteHeader(statusCode int) {
 	if !rw.written {
 		rw.statusCode = statusCode
 		rw.written = true
@@ -23,7 +21,7 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 	}
 }
 
-func (rw *responseWriter) Write(b []byte) (int, error) {
+func (rw *loggerResponseWriter) Write(b []byte) (int, error) {
 	if !rw.written {
 		rw.WriteHeader(http.StatusOK)
 	}
@@ -33,31 +31,31 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 // Logger is a middleware that logs HTTP requests
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Generate request ID for tracing
-		requestID := uuid.New().String()
-		
-		// Add request ID to response header
-		w.Header().Set("X-Request-ID", requestID)
+		// Extract request ID from context (set by RequestID middleware)
+		requestID := GetRequestID(r.Context())
+		if requestID == "" {
+			requestID = "unknown"
+		}
 
 		// Extract user_id from context if available
 		userID := ""
 		if uid := r.Context().Value("user_id"); uid != nil {
-			userID = uid.(string)
+			userID = fmt.Sprintf("%v", uid)
 		}
 
 		// Record start time
 		start := time.Now()
 
 		// Wrap response writer to capture status code
-		wrapped := &responseWriter{
+		wrapped := &loggerResponseWriter{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
 			written:        false,
 		}
 
 		// Log incoming request
-		fmt.Printf("[INFO] [%s] Request started - Method: %s, Path: %s, UserID: %s\n",
-			requestID, r.Method, r.URL.Path, userID)
+		fmt.Printf("[INFO] [%s] Request started - Method: %s, Path: %s, IP: %s, UserID: %s\n",
+			requestID, r.Method, r.URL.Path, getIPAddress(r), userID)
 
 		// Process request
 		next.ServeHTTP(wrapped, r)

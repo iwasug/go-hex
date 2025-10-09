@@ -10,6 +10,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"golang-chi-hexagonal-base/internal/adapter/crypto"
 	"golang-chi-hexagonal-base/internal/adapter/http/handler"
@@ -37,9 +39,17 @@ func NewRouter(config *config.Config, db *postgres.DB) *Router {
 func (rt *Router) Setup() http.Handler {
 	r := chi.NewRouter()
 
-	// Setup middleware chain (Recovery → Logger → CORS)
+	rateLimiter := custommiddleware.NewRateLimiter(100, 200)
+
+	// Setup middleware chain (order matters!)
 	r.Use(custommiddleware.Recovery)
+	r.Use(custommiddleware.RequestID)
 	r.Use(custommiddleware.Logger)
+	r.Use(custommiddleware.SecurityHeaders)
+	r.Use(custommiddleware.Metrics)
+	r.Use(custommiddleware.Tracing("go-hex-api"))
+	r.Use(rateLimiter.Limit)
+	r.Use(custommiddleware.Compress)
 	r.Use(rt.corsMiddleware())
 	r.Use(middleware.Timeout(60 * time.Second))
 
@@ -67,13 +77,16 @@ func (rt *Router) Setup() http.Handler {
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	roleHandler := handler.NewRoleHandler(roleService)
+	healthHandler := handler.NewHealthHandler(rt.db)
 
-	// Health check endpoint
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
-	})
+	// Health check and observability endpoints
+	r.Get("/health", healthHandler.Health)
+	r.Get("/health/ready", healthHandler.Readiness)
+	r.Get("/health/live", healthHandler.Liveness)
+	r.Handle("/metrics", promhttp.Handler())
+
+	// Swagger documentation
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	// API routes
 	r.Route("/api/v1", func(r chi.Router) {

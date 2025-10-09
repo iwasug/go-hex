@@ -14,12 +14,12 @@ type ErrorDetail struct {
 
 // Error codes
 const (
-	ErrCodeValidation    = "VALIDATION_ERROR"
-	ErrCodeUnauthorized  = "UNAUTHORIZED"
-	ErrCodeForbidden     = "FORBIDDEN"
-	ErrCodeNotFound      = "NOT_FOUND"
-	ErrCodeConflict      = "CONFLICT"
-	ErrCodeInternal      = "INTERNAL_ERROR"
+	ErrCodeValidation   = "VALIDATION_ERROR"
+	ErrCodeUnauthorized = "UNAUTHORIZED"
+	ErrCodeForbidden    = "FORBIDDEN"
+	ErrCodeNotFound     = "NOT_FOUND"
+	ErrCodeConflict     = "CONFLICT"
+	ErrCodeInternal     = "INTERNAL_ERROR"
 )
 
 // NewErrorResponse creates a new error response

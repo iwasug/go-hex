@@ -95,12 +95,12 @@ func New(level Level, format Format, output io.Writer) *Logger {
 // NewFromConfig creates a new Logger from configuration strings
 func NewFromConfig(levelStr, formatStr string) *Logger {
 	level := ParseLevel(levelStr)
-	
+
 	format := JSONFormat
 	if formatStr == "text" {
 		format = TextFormat
 	}
-	
+
 	return New(level, format, os.Stdout)
 }
 
@@ -153,14 +153,14 @@ func (l *Logger) formatJSON(entry logEntry) string {
 // formatText formats the log entry as plain text
 func (l *Logger) formatText(entry logEntry) string {
 	output := fmt.Sprintf("[%s] %s: %s", entry.Timestamp, entry.Level, entry.Message)
-	
+
 	if len(entry.Fields) > 0 {
 		output += " |"
 		for key, value := range entry.Fields {
 			output += fmt.Sprintf(" %s=%v", key, value)
 		}
 	}
-	
+
 	return output
 }
 

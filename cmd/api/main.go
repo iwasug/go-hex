@@ -9,11 +9,45 @@ import (
 	"syscall"
 	"time"
 
-	"golang-chi-hexagonal-base/internal/adapter/postgres"
 	httpAdapter "golang-chi-hexagonal-base/internal/adapter/http"
+	"golang-chi-hexagonal-base/internal/adapter/postgres"
 	"golang-chi-hexagonal-base/internal/config"
 	"golang-chi-hexagonal-base/internal/pkg/logger"
+
+	_ "golang-chi-hexagonal-base/docs"
 )
+
+// @title Go Hexagonal API
+// @version 1.0
+// @description Production-ready Go API using Chi router with Hexagonal Architecture (Ports and Adapters pattern). Features authentication, user management, and role-based access control (RBAC).
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
+// @tag.name Auth
+// @tag.description Authentication endpoints for user registration, login, and token management
+
+// @tag.name Users
+// @tag.description User management endpoints (requires authentication)
+
+// @tag.name Roles
+// @tag.description Role management endpoints (requires authentication and admin privileges)
+
+// @tag.name Health
+// @tag.description Health check and monitoring endpoints
 
 func main() {
 	// Initialize logger

@@ -1,0 +1,938 @@
+basePath: /api/v1
+definitions:
+  golang-chi-hexagonal-base_internal_adapter_http_request.AssignRoleRequest:
+    properties:
+      role_id:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      permission_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.ResetPasswordRequest:
+    properties:
+      new_password:
+        type: string
+      token:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_request.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse'
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.ErrorDetail:
+    properties:
+      code:
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      message:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorDetail'
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.PaginatedResponse:
+    properties:
+      data: {}
+      pagination:
+        $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.Pagination'
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.Pagination:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.PermissionResponse:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      resource:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PermissionResponse'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse'
+        type: array
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: Production-ready Go API using Chi router with Hexagonal Architecture
+    (Ports and Adapters pattern). Features authentication, user management, and role-based
+    access control (RBAC).
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Go Hexagonal API
+  version: "1.0"
+paths:
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send password reset token to user's email
+      parameters:
+      - description: Email address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent (if email exists)
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      summary: Request password reset
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password, returns access and refresh
+        tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.AuthResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Invalid credentials or user deleted
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate refresh token and logout user
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      summary: Logout user
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get a new access token using a valid refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New access token
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RefreshTokenResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email, password, and name
+      parameters:
+      - description: Registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using reset token
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successful
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid or expired reset token
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      summary: Reset password
+      tags:
+      - Auth
+  /roles:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of roles with optional search, sorting, and filtering
+      parameters:
+      - description: Search by name or description
+        in: query
+        name: search
+        type: string
+      - description: Sort field (name, created_at)
+        in: query
+        name: order_by
+        type: string
+      - description: Sort direction (asc, desc)
+        in: query
+        name: order
+        type: string
+      - description: Include deleted roles (admin only)
+        in: query
+        name: include_deleted
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of roles
+          schema:
+            items:
+              $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse'
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires roles:read permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new role with specified permissions
+      parameters:
+      - description: Role creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Role created successfully
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires roles:write permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "409":
+          description: Role with this name already exists
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create role
+      tags:
+      - Roles
+  /roles/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a role (can be restored by admin)
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role deleted successfully
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid role ID
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires roles:delete permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "409":
+          description: Role is in use and cannot be deleted
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete role
+      tags:
+      - Roles
+    get:
+      consumes:
+      - application/json
+      description: Retrieve detailed information about a specific role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role details
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse'
+        "400":
+          description: Invalid role ID
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires roles:read permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get role by ID
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: Update role information (name and description)
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated role
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires roles:write permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "409":
+          description: Role with this name already exists
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update role
+      tags:
+      - Roles
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of users with optional search, sorting, and
+        filtering
+      parameters:
+      - description: Search by name or email
+        in: query
+        name: search
+        type: string
+      - description: Sort field (name, email, created_at)
+        in: query
+        name: order_by
+        type: string
+      - description: Sort direction (asc, desc)
+        in: query
+        name: order
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Include deleted users (admin only)
+        in: query
+        name: include_deleted
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PaginatedResponse'
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires users:read permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a user (can be restored by admin)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted successfully
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires users:delete permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Retrieve detailed information about a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User details
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse'
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires users:read permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user information (name and email)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires users:write permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user
+      tags:
+      - Users
+  /users/{id}/roles:
+    post:
+      consumes:
+      - application/json
+      description: Assign a role to a user for permission management
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role assignment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role assigned successfully
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires users:write permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: User or role not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "409":
+          description: Role already assigned
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign role to user
+      tags:
+      - Users
+  /users/{id}/roles/{role_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove an assigned role from a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role ID
+        in: path
+        name: role_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role removed successfully
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse'
+        "400":
+          description: Invalid user ID or role ID
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "403":
+          description: Forbidden - requires users:write permission
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "404":
+          description: User or role not found
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove role from user
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Authentication endpoints for user registration, login, and token management
+  name: Auth
+- description: User management endpoints (requires authentication)
+  name: Users
+- description: Role management endpoints (requires authentication and admin privileges)
+  name: Roles
+- description: Health check and monitoring endpoints
+  name: Health

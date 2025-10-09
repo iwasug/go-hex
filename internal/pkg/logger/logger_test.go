@@ -54,11 +54,11 @@ func TestLevelString(t *testing.T) {
 
 func TestNewFromConfig(t *testing.T) {
 	tests := []struct {
-		name         string
-		levelStr     string
-		formatStr    string
-		expectedLvl  Level
-		expectedFmt  Format
+		name        string
+		levelStr    string
+		formatStr   string
+		expectedLvl Level
+		expectedFmt Format
 	}{
 		{"json format", "info", "json", INFO, JSONFormat},
 		{"text format", "debug", "text", DEBUG, TextFormat},
@@ -83,11 +83,11 @@ func TestLoggerJSONFormat(t *testing.T) {
 	logger := New(DEBUG, JSONFormat, &buf)
 
 	tests := []struct {
-		name     string
-		logFunc  func(string, ...Fields)
-		message  string
-		fields   Fields
-		level    string
+		name    string
+		logFunc func(string, ...Fields)
+		message string
+		fields  Fields
+		level   string
 	}{
 		{
 			name:    "debug log",

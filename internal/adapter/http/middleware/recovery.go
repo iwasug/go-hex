@@ -5,19 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+
+	"golang-chi-hexagonal-base/internal/adapter/http/response"
 )
-
-// ErrorResponse represents an error response
-type ErrorResponse struct {
-	Error ErrorDetail `json:"error"`
-}
-
-// ErrorDetail contains error information
-type ErrorDetail struct {
-	Code    string                 `json:"code"`
-	Message string                 `json:"message"`
-	Details map[string]interface{} `json:"details,omitempty"`
-}
 
 // Recovery is a middleware that recovers from panics
 func Recovery(next http.Handler) http.Handler {
@@ -32,14 +22,12 @@ func Recovery(next http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
 
-				errorResponse := ErrorResponse{
-					Error: ErrorDetail{
-						Code:    "INTERNAL_ERROR",
-						Message: "Internal server error",
-					},
+				errorDetail := response.ErrorDetail{
+					Code:    response.ErrCodeInternal,
+					Message: "Internal server error",
 				}
 
-				json.NewEncoder(w).Encode(errorResponse)
+				json.NewEncoder(w).Encode(response.NewErrorResponseWrapper(errorDetail))
 			}
 		}()
 

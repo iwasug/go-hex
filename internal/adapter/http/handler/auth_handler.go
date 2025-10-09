@@ -25,7 +25,17 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 }
 
 // Register handles user registration
-// POST /api/v1/auth/register
+// @Summary Register a new user
+// @Description Create a new user account with email, password, and name
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body request.RegisterRequest true "Registration request"
+// @Success 201 {object} response.UserResponse "User created successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 409 {object} response.ErrorResponse "Email already exists"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req request.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -62,11 +72,21 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusCreated, toUserResponse(user))
+	respondSuccess(w, http.StatusCreated, "User registered successfully", toUserResponse(user))
 }
 
 // Login handles user login
-// POST /api/v1/auth/login
+// @Summary Login user
+// @Description Authenticate user with email and password, returns access and refresh tokens
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body request.LoginRequest true "Login credentials"
+// @Success 200 {object} response.AuthResponse "Login successful"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 401 {object} response.ErrorResponse "Invalid credentials or user deleted"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req request.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -100,7 +120,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.AuthResponse{
+	respondSuccess(w, http.StatusOK, "Login successful", response.AuthResponse{
 		AccessToken:  loginResp.AccessToken,
 		RefreshToken: loginResp.RefreshToken,
 		User:         toUserResponse(loginResp.User),
@@ -108,7 +128,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // RefreshToken handles access token refresh
-// POST /api/v1/auth/refresh
+// @Summary Refresh access token
+// @Description Get a new access token using a valid refresh token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body request.RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} response.RefreshTokenResponse "New access token"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 401 {object} response.ErrorResponse "Invalid or expired refresh token"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req request.RefreshTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -145,13 +175,22 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.RefreshTokenResponse{
+	respondSuccess(w, http.StatusOK, "Token refreshed successfully", response.RefreshTokenResponse{
 		AccessToken: accessToken,
 	})
 }
 
 // ForgotPassword handles forgot password request
-// POST /api/v1/auth/forgot-password
+// @Summary Request password reset
+// @Description Send password reset token to user's email
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body request.ForgotPasswordRequest true "Email address"
+// @Success 200 {object} response.MessageResponse "Password reset email sent (if email exists)"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req request.ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -176,13 +215,20 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Always return success for security reasons
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "If the email exists, a password reset link has been sent",
-	})
+	respondSuccess(w, http.StatusOK, "If the email exists, a password reset link has been sent", nil)
 }
 
 // ResetPassword handles password reset
-// POST /api/v1/auth/reset-password
+// @Summary Reset password
+// @Description Reset user password using reset token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body request.ResetPasswordRequest true "Reset token and new password"
+// @Success 200 {object} response.MessageResponse "Password reset successful"
+// @Failure 400 {object} response.ErrorResponse "Invalid or expired reset token"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req request.ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -212,13 +258,20 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "Password has been reset successfully",
-	})
+	respondSuccess(w, http.StatusOK, "Password has been reset successfully", nil)
 }
 
 // Logout handles user logout
-// POST /api/v1/auth/logout
+// @Summary Logout user
+// @Description Invalidate refresh token and logout user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body request.LogoutRequest true "Refresh token"
+// @Success 200 {object} response.MessageResponse "Logout successful"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var req request.LogoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -243,9 +296,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "Logged out successfully",
-	})
+	respondSuccess(w, http.StatusOK, "Logged out successfully", nil)
 }
 
 // toUserResponse converts entity.User to response.UserResponse

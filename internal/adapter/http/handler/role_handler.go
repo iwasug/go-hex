@@ -27,7 +27,22 @@ func NewRoleHandler(roleService *service.RoleService) *RoleHandler {
 }
 
 // List handles listing roles with search and sorting
-// GET /api/v1/roles
+// @Summary List roles
+// @Description Get a list of roles with optional search, sorting, and filtering
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param search query string false "Search by name or description"
+// @Param order_by query string false "Sort field (name, created_at)"
+// @Param order query string false "Sort direction (asc, desc)"
+// @Param include_deleted query boolean false "Include deleted roles (admin only)"
+// @Success 200 {array} response.RoleResponse "List of roles"
+// @Failure 400 {object} response.ErrorResponse "Invalid parameters"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires roles:read permission"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /roles [get]
 func (h *RoleHandler) List(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	search := r.URL.Query().Get("search")
@@ -72,11 +87,24 @@ func (h *RoleHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, roleResponses)
+	respondSuccess(w, http.StatusOK, "Roles retrieved successfully", roleResponses)
 }
 
 // Create handles creating a new role
-// POST /api/v1/roles
+// @Summary Create role
+// @Description Create a new role with specified permissions
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param request body request.CreateRoleRequest true "Role creation data"
+// @Success 201 {object} response.RoleResponse "Role created successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires roles:write permission"
+// @Failure 409 {object} response.ErrorResponse "Role with this name already exists"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /roles [post]
 func (h *RoleHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req request.CreateRoleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -119,11 +147,24 @@ func (h *RoleHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusCreated, toRoleResponse(role))
+	respondSuccess(w, http.StatusCreated, "Role created successfully", toRoleResponse(role))
 }
 
 // GetByID handles retrieving a role by ID
-// GET /api/v1/roles/:id
+// @Summary Get role by ID
+// @Description Retrieve detailed information about a specific role
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param id path string true "Role ID"
+// @Success 200 {object} response.RoleResponse "Role details"
+// @Failure 400 {object} response.ErrorResponse "Invalid role ID"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires roles:read permission"
+// @Failure 404 {object} response.ErrorResponse "Role not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /roles/{id} [get]
 func (h *RoleHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -145,11 +186,26 @@ func (h *RoleHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, toRoleResponse(role))
+	respondSuccess(w, http.StatusOK, "Role retrieved successfully", toRoleResponse(role))
 }
 
 // Update handles updating a role
-// PUT /api/v1/roles/:id
+// @Summary Update role
+// @Description Update role information (name and description)
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param id path string true "Role ID"
+// @Param request body request.UpdateRoleRequest true "Role update data"
+// @Success 200 {object} response.RoleResponse "Updated role"
+// @Failure 400 {object} response.ErrorResponse "Invalid input"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires roles:write permission"
+// @Failure 404 {object} response.ErrorResponse "Role not found"
+// @Failure 409 {object} response.ErrorResponse "Role with this name already exists"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /roles/{id} [put]
 func (h *RoleHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -203,11 +259,25 @@ func (h *RoleHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, toRoleResponse(role))
+	respondSuccess(w, http.StatusOK, "Role retrieved successfully", toRoleResponse(role))
 }
 
 // Delete handles soft deleting a role
-// DELETE /api/v1/roles/:id
+// @Summary Delete role
+// @Description Soft delete a role (can be restored by admin)
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param id path string true "Role ID"
+// @Success 200 {object} response.MessageResponse "Role deleted successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid role ID"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires roles:delete permission"
+// @Failure 404 {object} response.ErrorResponse "Role not found"
+// @Failure 409 {object} response.ErrorResponse "Role is in use and cannot be deleted"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /roles/{id} [delete]
 func (h *RoleHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -240,9 +310,7 @@ func (h *RoleHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return response
-	respondJSON(w, http.StatusOK, response.MessageResponse{
-		Message: "Role deleted successfully",
-	})
+	respondSuccess(w, http.StatusOK, "Role deleted successfully", nil)
 }
 
 // toRoleResponse converts entity.Role to response.RoleResponse

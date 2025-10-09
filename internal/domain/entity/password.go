@@ -23,19 +23,19 @@ type Password struct {
 // NewPassword creates a new Password value object with validation
 func NewPassword(password string) (*Password, error) {
 	password = strings.TrimSpace(password)
-	
+
 	if password == "" {
 		return nil, ErrEmptyPassword
 	}
-	
+
 	if len(password) < 8 {
 		return nil, ErrPasswordTooShort
 	}
-	
+
 	if !isPasswordStrong(password) {
 		return nil, ErrPasswordTooWeak
 	}
-	
+
 	return &Password{value: password}, nil
 }
 
@@ -52,7 +52,7 @@ func isPasswordStrong(password string) bool {
 		hasNumber  bool
 		hasSpecial bool
 	)
-	
+
 	for _, char := range password {
 		switch {
 		case unicode.IsUpper(char):
@@ -65,6 +65,6 @@ func isPasswordStrong(password string) bool {
 			hasSpecial = true
 		}
 	}
-	
+
 	return hasUpper && hasLower && hasNumber && hasSpecial
 }

@@ -22,7 +22,7 @@ func (v *ValidationErrors) Error() string {
 	if len(v.Errors) == 0 {
 		return "validation failed"
 	}
-	
+
 	var messages []string
 	for _, err := range v.Errors {
 		messages = append(messages, fmt.Sprintf("%s: %s", err.Field, err.Message))
@@ -66,12 +66,12 @@ func (v *Validator) ValidateEmail(field, email string) {
 		v.errors.Add(field, "email is required")
 		return
 	}
-	
+
 	if len(email) > 255 {
 		v.errors.Add(field, "email must not exceed 255 characters")
 		return
 	}
-	
+
 	if !emailRegex.MatchString(email) {
 		v.errors.Add(field, "email format is invalid")
 	}
@@ -83,29 +83,29 @@ func (v *Validator) ValidatePassword(field, password string) {
 		v.errors.Add(field, "password is required")
 		return
 	}
-	
+
 	if len(password) < 8 {
 		v.errors.Add(field, "password must be at least 8 characters long")
 		return
 	}
-	
+
 	if len(password) > 72 {
 		v.errors.Add(field, "password must not exceed 72 characters")
 		return
 	}
-	
+
 	// Check for at least one uppercase letter
 	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
 	if !hasUpper {
 		v.errors.Add(field, "password must contain at least one uppercase letter")
 	}
-	
+
 	// Check for at least one lowercase letter
 	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
 	if !hasLower {
 		v.errors.Add(field, "password must contain at least one lowercase letter")
 	}
-	
+
 	// Check for at least one digit
 	hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
 	if !hasDigit {
@@ -125,13 +125,13 @@ func (v *Validator) ValidateEnum(field, value string, allowedValues []string) {
 	if value == "" {
 		return // Empty values are handled by ValidateRequired if needed
 	}
-	
+
 	for _, allowed := range allowedValues {
 		if value == allowed {
 			return
 		}
 	}
-	
+
 	v.errors.Add(field, fmt.Sprintf("%s must be one of: %s", field, strings.Join(allowedValues, ", ")))
 }
 
@@ -140,7 +140,7 @@ func (v *Validator) ValidateOrderBy(field, value string, allowedFields []string)
 	if value == "" {
 		return // Empty values will use default
 	}
-	
+
 	v.ValidateEnum(field, value, allowedFields)
 }
 
@@ -149,7 +149,7 @@ func (v *Validator) ValidateOrderDirection(field, value string) {
 	if value == "" {
 		return // Empty values will use default
 	}
-	
+
 	v.ValidateEnum(field, value, []string{"asc", "desc"})
 }
 
@@ -207,10 +207,10 @@ func IsValidPassword(password string) bool {
 	if len(password) < 8 || len(password) > 72 {
 		return false
 	}
-	
+
 	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
 	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
 	hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
-	
+
 	return hasUpper && hasLower && hasDigit
 }

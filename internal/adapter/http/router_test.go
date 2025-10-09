@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,8 +52,8 @@ func TestHealthCheckEndpoint(t *testing.T) {
 	router := NewRouter(cfg, db)
 	handler := router.Setup()
 
-	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	// Create test request for liveness endpoint (doesn't need real DB)
+	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 	w := httptest.NewRecorder()
 
 	// Execute request
@@ -63,9 +64,9 @@ func TestHealthCheckEndpoint(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	expectedBody := `{"status":"ok"}`
-	if w.Body.String() != expectedBody {
-		t.Errorf("Expected body %s, got %s", expectedBody, w.Body.String())
+	responseBody := w.Body.String()
+	if !strings.Contains(responseBody, `"status":"alive"`) {
+		t.Errorf("Expected body to contain status:alive, got %s", responseBody)
 	}
 
 	contentType := w.Header().Get("Content-Type")

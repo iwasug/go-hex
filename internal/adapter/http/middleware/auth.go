@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"golang-chi-hexagonal-base/internal/adapter/crypto"
+	"golang-chi-hexagonal-base/internal/adapter/http/response"
 )
 
 // Auth is a middleware that validates JWT tokens and injects user information into context
@@ -63,12 +64,10 @@ func respondWithError(w http.ResponseWriter, statusCode int, code, message strin
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	errorResponse := ErrorResponse{
-		Error: ErrorDetail{
-			Code:    code,
-			Message: message,
-		},
+	errorDetail := response.ErrorDetail{
+		Code:    code,
+		Message: message,
 	}
 
-	json.NewEncoder(w).Encode(errorResponse)
+	json.NewEncoder(w).Encode(response.NewErrorResponseWrapper(errorDetail))
 }

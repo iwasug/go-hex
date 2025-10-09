@@ -28,9 +28,9 @@ var (
 
 // AuthService handles authentication operations
 type AuthService struct {
-	userRepo      repository.UserRepository
-	roleRepo      repository.RoleRepository
-	tokenRepo     repository.TokenRepository
+	userRepo       repository.UserRepository
+	roleRepo       repository.RoleRepository
+	tokenRepo      repository.TokenRepository
 	passwordHasher crypto.PasswordHasher
 	tokenManager   crypto.TokenManager
 }
@@ -44,9 +44,9 @@ func NewAuthService(
 	tokenManager crypto.TokenManager,
 ) *AuthService {
 	return &AuthService{
-		userRepo:      userRepo,
-		roleRepo:      roleRepo,
-		tokenRepo:     tokenRepo,
+		userRepo:       userRepo,
+		roleRepo:       roleRepo,
+		tokenRepo:      tokenRepo,
 		passwordHasher: passwordHasher,
 		tokenManager:   tokenManager,
 	}
