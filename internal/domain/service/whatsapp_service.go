@@ -25,6 +25,7 @@ type WhatsAppClient interface {
 	Connect() error
 	Disconnect() error
 	GetQRCode(ctx context.Context, timeout time.Duration) (string, error)
+	GetPairingCode(ctx context.Context, phoneNumber string, timeout time.Duration) (string, error)
 	SendTextMessage(ctx context.Context, to, content string) (string, error)
 	SendMediaMessage(ctx context.Context, to string, media interface{}) (string, error)
 	IsConnected() bool
@@ -351,6 +352,100 @@ func (s *WhatsAppService) DeleteSession(ctx context.Context, sessionID, userID s
 // GenerateQRCodeInput represents the input for generating a QR code
 type GenerateQRCodeInput struct {
 	Timeout time.Duration // How long to wait for QR code generation
+}
+
+// GeneratePairingCodeInput represents the input for generating a pairing code
+type GeneratePairingCodeInput struct {
+	PhoneNumber string
+	Timeout     time.Duration
+}
+
+// GeneratePairingCode generates an 8-digit pairing code for WhatsApp authentication via phone number
+func (s *WhatsAppService) GeneratePairingCode(ctx context.Context, sessionID, userID string, isAdmin bool, input GeneratePairingCodeInput) (string, error) {
+	// Get session from database
+	session, err := s.sessionRepo.FindByID(ctx, sessionID)
+	if err != nil {
+		s.logger.LogErrorWithContext("generate_pairing_code", err, map[string]interface{}{
+			"session_id": sessionID,
+		})
+		return "", errors.NewSessionNotFoundError(sessionID)
+	}
+
+	// Check ownership (admins can generate pairing code for any session)
+	if !isAdmin && session.UserID != userID {
+		s.logger.LogWarningWithContext("generate_pairing_code", "unauthorized access attempt", map[string]interface{}{
+			"session_id":      sessionID,
+			"requesting_user": userID,
+			"session_owner":   session.UserID,
+		})
+		return "", errors.NewUnauthorizedSessionError(userID, sessionID)
+	}
+
+	// Check if session is already connected
+	if session.IsConnected() {
+		s.logger.LogWarningWithContext("generate_pairing_code", "session already connected", map[string]interface{}{
+			"session_id": sessionID,
+		})
+		return "", errors.NewWhatsAppError(errors.ErrCodeSessionNotConnected, "Session is already connected", 400, nil)
+	}
+
+	// Validate phone number
+	if input.PhoneNumber == "" {
+		return "", errors.NewInvalidPhoneNumberError(input.PhoneNumber)
+	}
+
+	// Set default timeout if not provided
+	if input.Timeout == 0 {
+		input.Timeout = 60 * time.Second
+	}
+
+	// Get WhatsApp client
+	client, err := s.clientManager.GetClient(sessionID)
+	if err != nil {
+		// If client doesn't exist, try to create it
+		s.logger.LogWarningWithContext("generate_pairing_code", "client not found, creating new client", map[string]interface{}{
+			"session_id": sessionID,
+		})
+		err = s.clientManager.CreateClient(ctx, sessionID, session.UserID)
+		if err != nil {
+			s.logger.LogErrorWithContext("generate_pairing_code", err, map[string]interface{}{
+				"session_id": sessionID,
+				"operation":  "create_client",
+			})
+			return "", errors.NewClientCreationFailedError(sessionID, err)
+		}
+
+		// Get the newly created client
+		client, err = s.clientManager.GetClient(sessionID)
+		if err != nil {
+			s.logger.LogErrorWithContext("generate_pairing_code", err, map[string]interface{}{
+				"session_id": sessionID,
+				"operation":  "get_client",
+			})
+			return "", errors.NewClientNotFoundError(sessionID)
+		}
+	}
+
+	// Generate pairing code
+	startTime := time.Now()
+	pairingCode, err := client.GetPairingCode(ctx, input.PhoneNumber, input.Timeout)
+	if err != nil {
+		s.logger.LogErrorWithContext("generate_pairing_code", err, map[string]interface{}{
+			"session_id":   sessionID,
+			"phone_number": input.PhoneNumber,
+			"timeout":      input.Timeout.String(),
+		})
+		return "", errors.NewQRCodeGenerationFailedError(sessionID, err)
+	}
+
+	// Log successful pairing code generation
+	s.logger.LogPerformanceMetric("generate_pairing_code", time.Since(startTime), map[string]interface{}{
+		"session_id":   sessionID,
+		"phone_number": input.PhoneNumber,
+		"code_length":  len(pairingCode),
+	})
+
+	return pairingCode, nil
 }
 
 // GenerateQRCode generates a QR code for WhatsApp authentication

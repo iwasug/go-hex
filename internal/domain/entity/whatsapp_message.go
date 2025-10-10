@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // MessageDirection represents the direction of a WhatsApp message
 type MessageDirection string
@@ -44,6 +48,7 @@ type WhatsAppMessage struct {
 func NewOutboundMessage(sessionID, to, content, messageType string) *WhatsAppMessage {
 	now := time.Now()
 	return &WhatsAppMessage{
+		ID:               uuid.NewString(),
 		SessionID:        sessionID,
 		Direction:        MessageDirectionOutbound,
 		Status:           MessageStatusPending,
@@ -62,6 +67,7 @@ func NewOutboundMessage(sessionID, to, content, messageType string) *WhatsAppMes
 func NewInboundMessage(sessionID, messageID, from, content, messageType string, timestamp time.Time) *WhatsAppMessage {
 	now := time.Now()
 	return &WhatsAppMessage{
+		ID:               uuid.NewString(),
 		SessionID:        sessionID,
 		MessageID:        messageID,
 		Direction:        MessageDirectionInbound,

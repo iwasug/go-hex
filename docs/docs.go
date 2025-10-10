@@ -52,7 +52,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Password reset email sent (if email exists)",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -150,7 +150,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Logout successful",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -300,7 +300,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Password reset successful",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -642,7 +642,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Role deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -952,7 +952,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -1028,7 +1028,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Role assigned successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -1108,7 +1108,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Role removed successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
                         }
                     },
                     "400": {
@@ -1131,6 +1131,897 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "User or role not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of WhatsApp sessions with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "List WhatsApp sessions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status (connected, disconnected, connecting, authenticating, failed)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by active status",
+                        "name": "is_active",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by session name or phone number",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field (session_name, status, created_at, last_activity)",
+                        "name": "order_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort direction (asc, desc)",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of sessions",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PaginatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:read permission",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new WhatsApp session for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Create WhatsApp session",
+                "parameters": [
+                    {
+                        "description": "Session creation data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.CreateSessionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Session created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.WhatsAppSessionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:write permission",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Session with this name already exists",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve detailed information about a specific WhatsApp session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Get WhatsApp session by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session details",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.WhatsAppSessionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:read permission or session ownership",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a WhatsApp session and disconnect the client",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Delete WhatsApp session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:delete permission or session ownership",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}/media": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a media message (image, video, audio, document) through WhatsApp",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Send media message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Recipient phone number (E.164 format)",
+                        "name": "to",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional caption for media",
+                        "name": "caption",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filename (required for documents)",
+                        "name": "filename",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Media file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageSentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:write permission",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "File too large",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve paginated message history for a WhatsApp session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Get message history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by direction (inbound, outbound)",
+                        "name": "direction",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (ISO 8601 format)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (ISO 8601 format)",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Items per page (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Message history",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PaginatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:read permission",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a text message through WhatsApp to a recipient",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Send text message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Message data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.SendTextMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageSentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:write permission",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}/pairing-code": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate an 8-digit pairing code for linking a WhatsApp account via phone number. Alternative to QR code scanning.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Get pairing code for WhatsApp authentication",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Phone number with country code (e.g., 628123456789)",
+                        "name": "phone_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 60,
+                        "description": "Pairing code timeout in seconds",
+                        "name": "timeout",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pairing code generated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PairingCodeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID or parameters",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:read permission or session ownership",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Session is already connected",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}/qr": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate a QR code for linking a WhatsApp account to the session. Returns PNG file download by default, or JSON if format=json.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/png",
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Get QR code for WhatsApp authentication",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 60,
+                        "description": "QR code timeout in seconds",
+                        "name": "timeout",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "image",
+                            "json"
+                        ],
+                        "type": "string",
+                        "default": "image",
+                        "description": "Response format: 'image' (default) or 'json'",
+                        "name": "format",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 1024,
+                        "minimum": 128,
+                        "type": "integer",
+                        "default": 256,
+                        "description": "QR code image size in pixels (only for image format, 128-1024)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "QR code data (JSON)",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.QRCodeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID or parameters",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:read permission or session ownership",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Session is already connected",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}/reconnect": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Attempt to reconnect a disconnected WhatsApp session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Reconnect WhatsApp session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reconnection initiated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID or session already connected",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:write permission or session ownership",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/whatsapp/sessions/{id}/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the current connection and authentication status of a WhatsApp session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WhatsApp"
+                ],
+                "summary": "Get session status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session status retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.SessionStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session ID",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - requires whatsapp:read permission or session ownership",
+                        "schema": {
+                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
                         "schema": {
                             "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
                         }
@@ -1168,6 +2059,20 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "golang-chi-hexagonal-base_internal_adapter_http_request.CreateSessionRequest": {
+            "type": "object",
+            "properties": {
+                "session_name": {
+                    "type": "string"
+                },
+                "webhook_secret": {
+                    "type": "string"
+                },
+                "webhook_url": {
+                    "type": "string"
                 }
             }
         },
@@ -1231,6 +2136,19 @@ const docTemplate = `{
                 }
             }
         },
+        "golang-chi-hexagonal-base_internal_adapter_http_request.SendTextMessageRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "description": "Message content",
+                    "type": "string"
+                },
+                "to": {
+                    "description": "Phone number in E.164 format",
+                    "type": "string"
+                }
+            }
+        },
         "golang-chi-hexagonal-base_internal_adapter_http_request.UpdateRoleRequest": {
             "type": "object",
             "properties": {
@@ -1267,6 +2185,21 @@ const docTemplate = `{
                 }
             }
         },
+        "golang-chi-hexagonal-base_internal_adapter_http_response.BaseResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorDetail"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "golang-chi-hexagonal-base_internal_adapter_http_response.ErrorDetail": {
             "type": "object",
             "properties": {
@@ -1290,10 +2223,19 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse": {
+        "golang-chi-hexagonal-base_internal_adapter_http_response.MessageSentResponse": {
             "type": "object",
             "properties": {
                 "message": {
+                    "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.WhatsAppMessageResponse"
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
                     "type": "string"
                 }
             }
@@ -1324,6 +2266,26 @@ const docTemplate = `{
                 }
             }
         },
+        "golang-chi-hexagonal-base_internal_adapter_http_response.PairingCodeResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "pairing_code": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "golang-chi-hexagonal-base_internal_adapter_http_response.PermissionResponse": {
             "type": "object",
             "properties": {
@@ -1343,6 +2305,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "resource": {
+                    "type": "string"
+                }
+            }
+        },
+        "golang-chi-hexagonal-base_internal_adapter_http_response.QRCodeResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "qr_code": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -1387,6 +2366,35 @@ const docTemplate = `{
                 }
             }
         },
+        "golang-chi-hexagonal-base_internal_adapter_http_response.SessionStatusResponse": {
+            "type": "object",
+            "properties": {
+                "connected_phone": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_connected": {
+                    "type": "boolean"
+                },
+                "is_logged_in": {
+                    "type": "boolean"
+                },
+                "last_activity": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse": {
             "type": "object",
             "properties": {
@@ -1415,6 +2423,100 @@ const docTemplate = `{
                     }
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "golang-chi-hexagonal-base_internal_adapter_http_response.WhatsAppMessageResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "message_type": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "webhook_attempts": {
+                    "type": "integer"
+                },
+                "webhook_delivered": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "golang-chi-hexagonal-base_internal_adapter_http_response.WhatsAppSessionResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "device_info": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_activity": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "qr_code": {
+                    "type": "string"
+                },
+                "qr_code_expiry": {
+                    "type": "string"
+                },
+                "session_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "webhook_url": {
                     "type": "string"
                 }
             }

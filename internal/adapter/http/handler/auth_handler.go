@@ -187,7 +187,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body request.ForgotPasswordRequest true "Email address"
-// @Success 200 {object} response.MessageResponse "Password reset email sent (if email exists)"
+// @Success 200 {object} response.BaseResponse "Password reset email sent (if email exists)"
 // @Failure 400 {object} response.ErrorResponse "Invalid input"
 // @Failure 500 {object} response.ErrorResponse "Internal server error"
 // @Router /auth/forgot-password [post]
@@ -225,7 +225,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body request.ResetPasswordRequest true "Reset token and new password"
-// @Success 200 {object} response.MessageResponse "Password reset successful"
+// @Success 200 {object} response.BaseResponse "Password reset successful"
 // @Failure 400 {object} response.ErrorResponse "Invalid or expired reset token"
 // @Failure 500 {object} response.ErrorResponse "Internal server error"
 // @Router /auth/reset-password [post]
@@ -268,7 +268,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body request.LogoutRequest true "Refresh token"
-// @Success 200 {object} response.MessageResponse "Logout successful"
+// @Success 200 {object} response.BaseResponse "Logout successful"
 // @Failure 400 {object} response.ErrorResponse "Invalid input"
 // @Failure 500 {object} response.ErrorResponse "Internal server error"
 // @Router /auth/logout [post]

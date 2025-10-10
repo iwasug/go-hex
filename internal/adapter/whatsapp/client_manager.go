@@ -126,13 +126,27 @@ func (cm *ClientManager) CreateClient(ctx context.Context, sessionID, userID str
 	// Create PostgresStore for this session
 	pgStore := NewPostgresStore(cm.db, sessionID)
 
-	// Create a new device for this session
-	// The device will be stored in PostgreSQL when first used
-	device := pgStore.NewDevice()
+	// Create a logger adapter for whatsmeow
+	waLogger := NewLoggerAdapter(cm.logger.WithFields(logger.Fields{
+		"session_id": sessionID,
+		"component":  "whatsmeow",
+	}))
 
-	// Create whatsmeow client
-	// The client will use the store interfaces from the device
-	waClient := whatsmeow.NewClient(device, nil)
+	// Create a container that holds the device with our store implementations
+	container := NewStoreContainer(pgStore, waLogger)
+
+	// Get or create device from container
+	device, err := container.GetFirstDevice()
+	if err != nil {
+		cm.logger.Error("failed to get device", logger.Fields{
+			"session_id": sessionID,
+			"error":      err.Error(),
+		})
+		return fmt.Errorf("failed to get device: %w", err)
+	}
+
+	// Create whatsmeow client with device and logger
+	waClient := whatsmeow.NewClient(device, waLogger)
 
 	// Create our client wrapper
 	client := &Client{

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_app_state_sync_keys (
     fingerprint BYTEA,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_session_key_id UNIQUE(session_id, key_id)
+    CONSTRAINT unique_session_key_id_app UNIQUE(session_id, key_id)
 );
 
 -- Create indexes for performance optimization

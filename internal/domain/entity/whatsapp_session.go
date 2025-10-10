@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // SessionStatus represents the connection status of a WhatsApp session
 type SessionStatus string
@@ -20,9 +24,9 @@ type WhatsAppSession struct {
 	SessionName          string
 	PhoneNumber          string
 	Status               SessionStatus
-	QRCode               string
+	QRCode               *string
 	QRCodeExpiry         *time.Time
-	DeviceInfo           string
+	DeviceInfo           *string
 	LastActivity         time.Time
 	WebhookURL           string
 	WebhookSecret        string
@@ -39,12 +43,14 @@ type WhatsAppSession struct {
 func NewWhatsAppSession(userID, sessionName string, createdBy *string) *WhatsAppSession {
 	now := time.Now()
 	return &WhatsAppSession{
+		ID:           uuid.NewString(),
 		UserID:       userID,
 		SessionName:  sessionName,
 		Status:       SessionStatusDisconnected,
 		LastActivity: now,
 		IsActive:     true,
 		CreatedBy:    createdBy,
+		UpdatedBy:    createdBy,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -56,7 +62,7 @@ func (s *WhatsAppSession) Connect(phoneNumber string) {
 	s.PhoneNumber = phoneNumber
 	s.LastActivity = time.Now()
 	s.UpdatedAt = time.Now()
-	s.QRCode = ""
+	s.QRCode = nil
 	s.QRCodeExpiry = nil
 }
 
@@ -76,7 +82,7 @@ func (s *WhatsAppSession) UpdateStatus(status SessionStatus) {
 
 // SetQRCode sets the QR code and its expiry time
 func (s *WhatsAppSession) SetQRCode(qrCode string, expiry time.Time) {
-	s.QRCode = qrCode
+	s.QRCode = &qrCode
 	s.QRCodeExpiry = &expiry
 	s.Status = SessionStatusAuthenticating
 	s.UpdatedAt = time.Now()
@@ -84,7 +90,7 @@ func (s *WhatsAppSession) SetQRCode(qrCode string, expiry time.Time) {
 
 // ClearQRCode clears the QR code data
 func (s *WhatsAppSession) ClearQRCode() {
-	s.QRCode = ""
+	s.QRCode = nil
 	s.QRCodeExpiry = nil
 	s.UpdatedAt = time.Now()
 }
@@ -99,7 +105,7 @@ func (s *WhatsAppSession) IsQRCodeExpired() bool {
 
 // UpdateDeviceInfo updates the device information
 func (s *WhatsAppSession) UpdateDeviceInfo(deviceInfo string) {
-	s.DeviceInfo = deviceInfo
+	s.DeviceInfo = &deviceInfo
 	s.UpdatedAt = time.Now()
 }
 

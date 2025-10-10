@@ -239,7 +239,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Success 200 {object} response.MessageResponse "User deleted successfully"
+// @Success 200 {object} response.BaseResponse "User deleted successfully"
 // @Failure 400 {object} response.ErrorResponse "Invalid user ID"
 // @Failure 401 {object} response.ErrorResponse "Unauthorized"
 // @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:delete permission"
@@ -286,7 +286,7 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "User ID"
 // @Param request body request.AssignRoleRequest true "Role assignment data"
-// @Success 200 {object} response.MessageResponse "Role assigned successfully"
+// @Success 200 {object} response.BaseResponse "Role assigned successfully"
 // @Failure 400 {object} response.ErrorResponse "Invalid input"
 // @Failure 401 {object} response.ErrorResponse "Unauthorized"
 // @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:write permission"
@@ -350,7 +350,7 @@ func (h *UserHandler) AssignRole(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "User ID"
 // @Param role_id path string true "Role ID"
-// @Success 200 {object} response.MessageResponse "Role removed successfully"
+// @Success 200 {object} response.BaseResponse "Role removed successfully"
 // @Failure 400 {object} response.ErrorResponse "Invalid user ID or role ID"
 // @Failure 401 {object} response.ErrorResponse "Unauthorized"
 // @Failure 403 {object} response.ErrorResponse "Forbidden - requires users:write permission"

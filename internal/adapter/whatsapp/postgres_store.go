@@ -12,7 +12,7 @@ import (
 )
 
 // PostgresStore implements multiple whatsmeow store interfaces using PostgreSQL
-// It implements: DeviceContainer, IdentityStore, PreKeyStore, SessionStore, SenderKeyStore
+// It implements: IdentityStore, PreKeyStore, SessionStore, SenderKeyStore
 type PostgresStore struct {
 	db        *sql.DB
 	sessionID string
@@ -29,11 +29,190 @@ func NewPostgresStore(db *sql.DB, sessionID string) *PostgresStore {
 // NewDevice creates a new device for this store
 // This returns a device that will use this PostgresStore for all storage operations
 func (s *PostgresStore) NewDevice() *store.Device {
-	// Create a new empty device
-	// The device will be populated when the user pairs their WhatsApp
-	return &store.Device{
-		ID: nil, // Will be set after pairing
+	ctx := context.Background()
+	
+	// Try to load existing device from database
+	existingDevice, err := s.loadDeviceFromDB(ctx)
+	if err == nil && existingDevice != nil {
+		// Device exists, return it with store interfaces configured
+		existingDevice.Identities = s
+		existingDevice.Sessions = s
+		existingDevice.PreKeys = s
+		existingDevice.SenderKeys = s
+		return existingDevice
 	}
+	
+	// No existing device, generate cryptographic keys for new device
+	// These are required for the WhatsApp handshake
+	noiseKey := keys.NewKeyPair()
+	identityKey := keys.NewKeyPair()
+	
+	// Generate a signed pre-key
+	signedPreKey := identityKey.CreateSignedPreKey(1)
+	
+	// Generate a random registration ID
+	registrationID := generateRegistrationID()
+	
+	// Create a device with all store interfaces properly configured
+	device := &store.Device{
+		ID:             nil, // Will be set after pairing
+		NoiseKey:       noiseKey,
+		IdentityKey:    identityKey,
+		SignedPreKey:   signedPreKey,
+		RegistrationID: registrationID,
+		Identities:     s, // IdentityStore interface
+		Sessions:       s, // SessionStore interface
+		PreKeys:        s, // PreKeyStore interface
+		SenderKeys:     s, // SenderKeyStore interface
+		LIDs:           s, // LIDStore interface
+		AppStateKeys:   s, // AppStateSyncKeyStore interface
+	}
+	
+	return device
+}
+
+// loadDeviceFromDB loads an existing device from the database
+func (s *PostgresStore) loadDeviceFromDB(ctx context.Context) (*store.Device, error) {
+	query := `
+		SELECT jid, registration_id, identity_key, signed_pre_key, 
+		       signed_pre_key_id, signed_pre_key_signature, adv_secret_key,
+		       platform, business_name, push_name
+		FROM whatsapp_devices
+		WHERE session_id = $1
+	`
+
+	var jidStr string
+	var registrationID uint32
+	var identityKeyBytes, signedPreKeyBytes []byte
+	var signedPreKeyID uint32
+	var signedPreKeySignature []byte
+	var advSecretKey []byte
+	var platform, businessName, pushName sql.NullString
+
+	err := s.db.QueryRowContext(ctx, query, s.sessionID).Scan(
+		&jidStr,
+		&registrationID,
+		&identityKeyBytes,
+		&signedPreKeyBytes,
+		&signedPreKeyID,
+		&signedPreKeySignature,
+		&advSecretKey,
+		&platform,
+		&businessName,
+		&pushName,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No existing device
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to load device from database: %w", err)
+	}
+
+	// Parse JID
+	jid, err := types.ParseJID(jidStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse JID: %w", err)
+	}
+
+	// Reconstruct identity key
+	if len(identityKeyBytes) != 32 {
+		return nil, fmt.Errorf("invalid identity key length: %d", len(identityKeyBytes))
+	}
+	var identityKeyPriv [32]byte
+	copy(identityKeyPriv[:], identityKeyBytes)
+	identityKey := keys.NewKeyPairFromPrivateKey(identityKeyPriv)
+
+	// Reconstruct signed pre-key
+	// Note: The database stores the private key, we need to reconstruct the full PreKey
+	if len(signedPreKeyBytes) != 32 {
+		return nil, fmt.Errorf("invalid signed pre-key length: %d", len(signedPreKeyBytes))
+	}
+	var signedPreKeyPriv [32]byte
+	copy(signedPreKeyPriv[:], signedPreKeyBytes)
+	signedPreKeyPair := keys.NewKeyPairFromPrivateKey(signedPreKeyPriv)
+	
+	signedPreKey := &keys.PreKey{
+		KeyPair: *signedPreKeyPair,
+		KeyID:   signedPreKeyID,
+	}
+
+	// Create device with loaded data
+	device := &store.Device{
+		ID:             &jid,
+		NoiseKey:       keys.NewKeyPair(), // Noise key is ephemeral
+		IdentityKey:    identityKey,
+		SignedPreKey:   signedPreKey,
+		RegistrationID: registrationID,
+		AdvSecretKey:   advSecretKey,
+		Platform:       platform.String,
+		BusinessName:   businessName.String,
+		PushName:       pushName.String,
+	}
+
+	return device, nil
+}
+
+// saveDeviceToDB saves the device to the database
+func (s *PostgresStore) saveDeviceToDB(ctx context.Context, device *store.Device) error {
+	if device.ID == nil {
+		return nil // Device not yet paired, nothing to save
+	}
+
+	query := `
+		INSERT INTO whatsapp_devices (
+			jid, session_id, registration_id, identity_key, signed_pre_key,
+			signed_pre_key_id, signed_pre_key_signature, adv_secret_key,
+			platform, business_name, push_name, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (session_id) DO UPDATE SET
+			jid = EXCLUDED.jid,
+			registration_id = EXCLUDED.registration_id,
+			identity_key = EXCLUDED.identity_key,
+			signed_pre_key = EXCLUDED.signed_pre_key,
+			signed_pre_key_id = EXCLUDED.signed_pre_key_id,
+			signed_pre_key_signature = EXCLUDED.signed_pre_key_signature,
+			adv_secret_key = EXCLUDED.adv_secret_key,
+			platform = EXCLUDED.platform,
+			business_name = EXCLUDED.business_name,
+			push_name = EXCLUDED.push_name,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	now := time.Now()
+	_, err := s.db.ExecContext(ctx, query,
+		device.ID.String(),
+		s.sessionID,
+		device.RegistrationID,
+		device.IdentityKey.Priv[:],
+		device.SignedPreKey.Priv[:],
+		device.SignedPreKey.KeyID,
+		[]byte{}, // signature placeholder
+		device.AdvSecretKey,
+		device.Platform,
+		device.BusinessName,
+		device.PushName,
+		now,
+		now,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save device to database: %w", err)
+	}
+
+	return nil
+}
+
+// generateRegistrationID generates a random registration ID
+func generateRegistrationID() uint32 {
+	// Generate a random uint32 for registration ID
+	// WhatsApp uses this to identify device registrations
+	var id uint32
+	for id == 0 {
+		// Make sure we don't get 0
+		id = uint32(time.Now().UnixNano() & 0xFFFFFFFF)
+	}
+	return id
 }
 
 // Ensure PostgresStore implements the required interfaces
@@ -568,7 +747,7 @@ func (s *PostgresStore) GetAppStateSyncKey(ctx context.Context, keyID []byte) (*
 }
 
 // PutAppStateSyncKey stores or updates an app state sync key
-func (s *PostgresStore) PutAppStateSyncKey(ctx context.Context, keyID []byte, key *store.AppStateSyncKey) error {
+func (s *PostgresStore) PutAppStateSyncKey(ctx context.Context, keyID []byte, key store.AppStateSyncKey) error {
 	query := `
 		INSERT INTO whatsapp_app_state_sync_keys (
 			session_id, key_id, key_data, timestamp, fingerprint, created_at, updated_at
@@ -613,4 +792,183 @@ func (s *PostgresStore) GetAppStateSyncKeyCount(ctx context.Context) (int, error
 	}
 
 	return count, nil
+}
+
+// GetLatestAppStateSyncKeyID returns the ID of the latest app state sync key
+func (s *PostgresStore) GetLatestAppStateSyncKeyID(ctx context.Context) ([]byte, error) {
+	query := `
+		SELECT key_id
+		FROM whatsapp_app_state_sync_keys
+		WHERE session_id = $1
+		ORDER BY timestamp DESC
+		LIMIT 1
+	`
+
+	var keyID []byte
+	err := s.db.QueryRowContext(ctx, query, s.sessionID).Scan(&keyID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest app state sync key ID: %w", err)
+	}
+
+	return keyID, nil
+}
+
+// ====================
+// LIDStore Implementation
+// ====================
+
+// PutManyLIDMappings stores multiple LID to PN mappings
+func (s *PostgresStore) PutManyLIDMappings(ctx context.Context, mappings []store.LIDMapping) error {
+	if len(mappings) == 0 {
+		return nil
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO whatsapp_lid_mappings (session_id, lid, phone_number, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (session_id, lid) 
+		DO UPDATE SET phone_number = EXCLUDED.phone_number, updated_at = EXCLUDED.updated_at
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	now := time.Now()
+	for _, mapping := range mappings {
+		_, err = stmt.ExecContext(ctx, s.sessionID, mapping.LID.String(), mapping.PN.String(), now, now)
+		if err != nil {
+			return fmt.Errorf("failed to insert LID mapping: %w", err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// PutLIDMapping stores a single LID to PN mapping
+func (s *PostgresStore) PutLIDMapping(ctx context.Context, lid, jid types.JID) error {
+	query := `
+		INSERT INTO whatsapp_lid_mappings (session_id, lid, phone_number, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (session_id, lid) 
+		DO UPDATE SET phone_number = EXCLUDED.phone_number, updated_at = EXCLUDED.updated_at
+	`
+	
+	now := time.Now()
+	_, err := s.db.ExecContext(ctx, query, s.sessionID, lid.String(), jid.String(), now, now)
+	if err != nil {
+		return fmt.Errorf("failed to store LID mapping: %w", err)
+	}
+
+	return nil
+}
+
+// GetPNForLID retrieves the phone number for a given LID
+func (s *PostgresStore) GetPNForLID(ctx context.Context, lid types.JID) (types.JID, error) {
+	query := `SELECT phone_number FROM whatsapp_lid_mappings WHERE session_id = $1 AND lid = $2`
+	
+	var pnStr string
+	err := s.db.QueryRowContext(ctx, query, s.sessionID, lid.String()).Scan(&pnStr)
+	if err == sql.ErrNoRows {
+		return types.EmptyJID, nil
+	} else if err != nil {
+		return types.EmptyJID, fmt.Errorf("failed to get PN for LID: %w", err)
+	}
+
+	pn, err := types.ParseJID(pnStr)
+	if err != nil {
+		return types.EmptyJID, fmt.Errorf("failed to parse JID: %w", err)
+	}
+
+	return pn, nil
+}
+
+// GetLIDForPN retrieves the LID for a given phone number
+func (s *PostgresStore) GetLIDForPN(ctx context.Context, pn types.JID) (types.JID, error) {
+	query := `SELECT lid FROM whatsapp_lid_mappings WHERE session_id = $1 AND phone_number = $2`
+	
+	var lidStr string
+	err := s.db.QueryRowContext(ctx, query, s.sessionID, pn.String()).Scan(&lidStr)
+	if err == sql.ErrNoRows {
+		return types.EmptyJID, nil
+	} else if err != nil {
+		return types.EmptyJID, fmt.Errorf("failed to get LID for PN: %w", err)
+	}
+
+	lid, err := types.ParseJID(lidStr)
+	if err != nil {
+		return types.EmptyJID, fmt.Errorf("failed to parse JID: %w", err)
+	}
+
+	return lid, nil
+}
+
+// GetManyLIDsForPNs retrieves LIDs for multiple phone numbers
+func (s *PostgresStore) GetManyLIDsForPNs(ctx context.Context, pns []types.JID) (map[types.JID]types.JID, error) {
+	if len(pns) == 0 {
+		return make(map[types.JID]types.JID), nil
+	}
+
+	// Build IN clause with placeholders
+	pnStrings := make([]interface{}, len(pns)+1)
+	pnStrings[0] = s.sessionID
+	for i, pn := range pns {
+		pnStrings[i+1] = pn.String()
+	}
+
+	// Create placeholders $2, $3, $4, ...
+	placeholders := "`"
+	for i := range pns {
+		if i > 0 {
+			placeholders += ", `"
+		}
+		placeholders += fmt.Sprintf("$%d", i+2)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT lid, phone_number 
+		FROM whatsapp_lid_mappings 
+		WHERE session_id = $1 AND phone_number IN (%s)
+	`, placeholders)
+
+	rows, err := s.db.QueryContext(ctx, query, pnStrings...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query LID mappings: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[types.JID]types.JID)
+	for rows.Next() {
+		var lidStr, pnStr string
+		if err := rows.Scan(&lidStr, &pnStr); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		lid, err := types.ParseJID(lidStr)
+		if err != nil {
+			continue // Skip invalid JIDs
+		}
+
+		pn, err := types.ParseJID(pnStr)
+		if err != nil {
+			continue // Skip invalid JIDs
+		}
+
+		result[pn] = lid
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return result, nil
 }

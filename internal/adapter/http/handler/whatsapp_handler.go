@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/skip2/go-qrcode"
 
 	"golang-chi-hexagonal-base/internal/adapter/http/request"
 	"golang-chi-hexagonal-base/internal/adapter/http/response"
@@ -28,6 +29,14 @@ func NewWhatsAppHandler(whatsappService *service.WhatsAppService) *WhatsAppHandl
 	return &WhatsAppHandler{
 		whatsappService: whatsappService,
 	}
+}
+
+// safeString safely dereferences a string pointer, returning empty string if nil
+func safeString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // handleWhatsAppError handles WhatsAppError responses
@@ -295,7 +304,7 @@ func (h *WhatsAppHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Session ID"
-// @Success 200 {object} response.MessageResponse "Session deleted successfully"
+// @Success 200 {object} response.BaseResponse "Session deleted successfully"
 // @Failure 400 {object} response.ErrorResponse "Invalid session ID"
 // @Failure 401 {object} response.ErrorResponse "Unauthorized"
 // @Failure 403 {object} response.ErrorResponse "Forbidden - requires whatsapp:delete permission or session ownership"
@@ -337,13 +346,19 @@ func (h *WhatsAppHandler) DeleteSession(w http.ResponseWriter, r *http.Request) 
 
 // GetQRCode handles generating and retrieving a QR code for WhatsApp authentication
 // @Summary Get QR code for WhatsApp authentication
-// @Description Generate a QR code for linking a WhatsApp account to the session
+// @Description Generate a QR code for linking a WhatsApp account to the session. Returns PNG file download by default, or JSON if format=json.
 // @Tags WhatsApp
 // @Accept json
-// @Produce json
+// @Produce image/png
+// @Produce application/json
 // @Param id path string true "Session ID"
 // @Param timeout query int false "QR code timeout in seconds" default(60)
-// @Success 200 {object} response.QRCodeResponse "QR code generated successfully"
+// @Param format query string false "Response format: 'image' (default) or 'json'" default(image) Enums(image, json)
+// @Param size query int false "QR code image size in pixels (only for image format, 128-1024)" default(256) minimum(128) maximum(1024)
+// @Success 200 {string} string "PNG image file (binary)" 
+// @Header 200 {string} Content-Type "image/png"
+// @Header 200 {string} Content-Disposition "attachment; filename=\"whatsapp-qr-{session_id}.png\""
+// @Success 200 {object} response.QRCodeResponse "QR code data (JSON)"
 // @Failure 400 {object} response.ErrorResponse "Invalid session ID or parameters"
 // @Failure 401 {object} response.ErrorResponse "Unauthorized"
 // @Failure 403 {object} response.ErrorResponse "Forbidden - requires whatsapp:read permission or session ownership"
@@ -373,6 +388,27 @@ func (h *WhatsAppHandler) GetQRCode(w http.ResponseWriter, r *http.Request) {
 		isAdmin = adminVal.(bool)
 	}
 
+	// Parse format from query parameter
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "image" // Default to image
+	}
+	if format != "image" && format != "json" {
+		respondError(w, http.StatusBadRequest, response.ErrCodeValidation, "Format must be 'image' or 'json'", nil)
+		return
+	}
+
+	// Parse size from query parameter (only for image format)
+	size := 256 // Default size
+	if format == "image" {
+		sizeStr := r.URL.Query().Get("size")
+		if sizeStr != "" {
+			if parsedSize, err := strconv.Atoi(sizeStr); err == nil && parsedSize >= 128 && parsedSize <= 1024 {
+				size = parsedSize
+			}
+		}
+	}
+
 	// Parse timeout from query parameter
 	timeoutStr := r.URL.Query().Get("timeout")
 	timeout := 60 * time.Second // Default 60 seconds
@@ -398,6 +434,136 @@ func (h *WhatsAppHandler) GetQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Debug: Check QR code string
+	if qrCode == "" {
+		respondError(w, http.StatusInternalServerError, response.ErrCodeInternal, "QR code is empty", nil)
+		return
+	}
+
+	// Get session to retrieve status
+	session, err := h.whatsappService.GetSession(r.Context(), sessionID, userID.(string), isAdmin)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, response.ErrCodeInternal, "Failed to get session status", nil)
+		return
+	}
+
+	// Return response based on format
+	if format == "image" {
+		// Generate QR code image
+		qrImage, err := qrcode.Encode(qrCode, qrcode.Medium, size)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, response.ErrCodeInternal, fmt.Sprintf("Failed to generate QR code image: %v", err), nil)
+			return
+		}
+
+		// Debug: Check image size
+		if len(qrImage) == 0 {
+			respondError(w, http.StatusInternalServerError, response.ErrCodeInternal, "Generated QR image is empty", nil)
+			return
+		}
+
+		// Set headers for file download
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"whatsapp-qr-%s.png\"", sessionID))
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(qrImage)))
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("X-QR-Expires-At", time.Now().Add(timeout).Format(time.RFC3339))
+		w.Header().Set("X-Session-ID", sessionID)
+		w.Header().Set("X-Session-Status", string(session.Status))
+		
+		// Write image
+		w.WriteHeader(http.StatusOK)
+		w.Write(qrImage)
+	} else {
+		// Return JSON response
+		qrResponse := response.QRCodeResponse{
+			SessionID: sessionID,
+			QRCode:    qrCode,
+			ExpiresAt: time.Now().Add(timeout),
+			Status:    string(session.Status),
+		}
+		respondSuccess(w, http.StatusOK, "QR code generated successfully", qrResponse)
+	}
+}
+
+// GetPairingCode handles generating and retrieving a pairing code for WhatsApp authentication
+// @Summary Get pairing code for WhatsApp authentication
+// @Description Generate an 8-digit pairing code for linking a WhatsApp account via phone number. Alternative to QR code scanning.
+// @Tags WhatsApp
+// @Accept json
+// @Produce application/json
+// @Param id path string true "Session ID"
+// @Param phone_number query string true "Phone number with country code (e.g., 628123456789)"
+// @Param timeout query int false "Pairing code timeout in seconds" default(60)
+// @Success 200 {object} response.PairingCodeResponse "Pairing code generated successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid session ID or parameters"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 403 {object} response.ErrorResponse "Forbidden - requires whatsapp:read permission or session ownership"
+// @Failure 404 {object} response.ErrorResponse "Session not found"
+// @Failure 409 {object} response.ErrorResponse "Session is already connected"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /whatsapp/sessions/{id}/pairing-code [get]
+func (h *WhatsAppHandler) GetPairingCode(w http.ResponseWriter, r *http.Request) {
+	// Get session ID from URL
+	sessionID := chi.URLParam(r, "id")
+	if sessionID == "" {
+		respondError(w, http.StatusBadRequest, response.ErrCodeValidation, "Session ID is required", nil)
+		return
+	}
+
+	// Get user ID from context
+	userID := r.Context().Value("user_id")
+	if userID == nil {
+		respondError(w, http.StatusUnauthorized, response.ErrCodeUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	// Check if user is admin
+	isAdmin := false
+	if adminVal := r.Context().Value("is_admin"); adminVal != nil {
+		isAdmin = adminVal.(bool)
+	}
+
+	// Parse phone number from query parameter
+	phoneNumber := r.URL.Query().Get("phone_number")
+	if phoneNumber == "" {
+		respondError(w, http.StatusBadRequest, response.ErrCodeValidation, "Phone number is required", nil)
+		return
+	}
+
+	// Parse timeout from query parameter
+	timeoutStr := r.URL.Query().Get("timeout")
+	timeout := 60 * time.Second // Default 60 seconds
+	if timeoutStr != "" {
+		if timeoutSec, err := strconv.Atoi(timeoutStr); err == nil && timeoutSec > 0 {
+			timeout = time.Duration(timeoutSec) * time.Second
+		}
+	}
+
+	// Validate timeout (max 5 minutes)
+	if timeout > 5*time.Minute {
+		respondError(w, http.StatusBadRequest, response.ErrCodeValidation, "Timeout cannot exceed 5 minutes", nil)
+		return
+	}
+
+	// Call service to generate pairing code
+	pairingCode, err := h.whatsappService.GeneratePairingCode(r.Context(), sessionID, userID.(string), isAdmin, service.GeneratePairingCodeInput{
+		PhoneNumber: phoneNumber,
+		Timeout:     timeout,
+	})
+
+	if err != nil {
+		handleWhatsAppError(w, err)
+		return
+	}
+
+	// Debug: Check pairing code string
+	if pairingCode == "" {
+		respondError(w, http.StatusInternalServerError, response.ErrCodeInternal, "Pairing code is empty", nil)
+		return
+	}
+
 	// Get session to retrieve status
 	session, err := h.whatsappService.GetSession(r.Context(), sessionID, userID.(string), isAdmin)
 	if err != nil {
@@ -406,15 +572,16 @@ func (h *WhatsAppHandler) GetQRCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Prepare response
-	qrResponse := response.QRCodeResponse{
-		SessionID: sessionID,
-		QRCode:    qrCode,
-		ExpiresAt: time.Now().Add(timeout),
-		Status:    string(session.Status),
+	pairingResponse := response.PairingCodeResponse{
+		SessionID:   sessionID,
+		PairingCode: pairingCode,
+		PhoneNumber: phoneNumber,
+		ExpiresAt:   time.Now().Add(timeout),
+		Status:      string(session.Status),
 	}
 
 	// Return response
-	respondSuccess(w, http.StatusOK, "QR code generated successfully", qrResponse)
+	respondSuccess(w, http.StatusOK, "Pairing code generated successfully", pairingResponse)
 }
 
 // SendTextMessage handles sending a text message through WhatsApp
@@ -780,15 +947,20 @@ func contains(s, substr string) bool {
 
 // toWhatsAppSessionResponse converts a WhatsAppSession entity to a response
 func toWhatsAppSessionResponse(session *entity.WhatsAppSession) response.WhatsAppSessionResponse {
+	deviceInfo := ""
+	if session.DeviceInfo != nil {
+		deviceInfo = *session.DeviceInfo
+	}
+	
 	return response.WhatsAppSessionResponse{
 		ID:           session.ID,
 		UserID:       session.UserID,
 		SessionName:  session.SessionName,
 		PhoneNumber:  session.PhoneNumber,
 		Status:       string(session.Status),
-		QRCode:       session.QRCode,
+		QRCode:       safeString(session.QRCode),
 		QRCodeExpiry: session.QRCodeExpiry,
-		DeviceInfo:   session.DeviceInfo,
+		DeviceInfo:   deviceInfo,
 		LastActivity: session.LastActivity,
 		WebhookURL:   session.WebhookURL,
 		IsActive:     session.IsActive,
@@ -825,7 +997,7 @@ func toWhatsAppMessageResponse(message *entity.WhatsAppMessage) response.WhatsAp
 // @Accept json
 // @Produce json
 // @Param id path string true "Session ID"
-// @Success 200 {object} response.MessageResponse "Reconnection initiated successfully"
+// @Success 200 {object} response.BaseResponse "Reconnection initiated successfully"
 // @Failure 400 {object} response.ErrorResponse "Invalid session ID or session already connected"
 // @Failure 401 {object} response.ErrorResponse "Unauthorized"
 // @Failure 403 {object} response.ErrorResponse "Forbidden - requires whatsapp:write permission or session ownership"

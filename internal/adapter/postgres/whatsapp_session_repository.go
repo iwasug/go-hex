@@ -515,8 +515,14 @@ func (r *WhatsAppSessionRepository) UpdateDeviceInfo(ctx context.Context, id str
 		WHERE id = $3
 	`
 
+	// Convert to pointer for nullable field
+	var deviceInfoPtr *string
+	if deviceInfo != "" {
+		deviceInfoPtr = &deviceInfo
+	}
+
 	now := time.Now()
-	result, err := r.db.ExecContext(ctx, query, deviceInfo, now, id)
+	result, err := r.db.ExecContext(ctx, query, deviceInfoPtr, now, id)
 	if err != nil {
 		return fmt.Errorf("failed to update device info: %w", err)
 	}

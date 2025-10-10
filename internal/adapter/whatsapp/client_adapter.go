@@ -33,6 +33,11 @@ func (a *ClientAdapter) GetQRCode(ctx context.Context, timeout time.Duration) (s
 	return a.client.GetQRCode(ctx, timeout)
 }
 
+// GetPairingCode generates and returns a pairing code for phone number-based linking
+func (a *ClientAdapter) GetPairingCode(ctx context.Context, phoneNumber string, timeout time.Duration) (string, error) {
+	return a.client.GetPairingCode(ctx, phoneNumber, timeout)
+}
+
 // SendTextMessage sends a text message to a recipient
 func (a *ClientAdapter) SendTextMessage(ctx context.Context, to, content string) (string, error) {
 	return a.client.SendTextMessage(ctx, to, content)

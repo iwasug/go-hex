@@ -100,14 +100,94 @@ func (c *Client) Disconnect() error {
 	return nil
 }
 
-// GetQRCode generates and returns a QR code as base64-encoded PNG
-func (c *Client) GetQRCode(ctx context.Context, timeout time.Duration) (string, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+// GetPairingCode generates and returns an 8-digit pairing code for phone number-based linking
+func (c *Client) GetPairingCode(ctx context.Context, phoneNumber string, timeout time.Duration) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	// Check if already logged in
 	if c.waClient.IsLoggedIn() {
 		return "", fmt.Errorf("already logged in")
+	}
+
+	// If already connected, disconnect first
+	if c.connected {
+		c.logger.Info("disconnecting existing connection for fresh pairing code")
+		c.waClient.Disconnect()
+		c.connected = false
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Connect to WhatsApp
+	if err := c.waClient.Connect(); err != nil {
+		c.logger.Error("failed to connect for pairing code", logger.Fields{
+			"error": err.Error(),
+		})
+		return "", fmt.Errorf("failed to connect: %w", err)
+	}
+	c.connected = true
+
+	// Validate phone number format (basic check)
+	if len(phoneNumber) < 10 || len(phoneNumber) > 15 {
+		c.logger.Error("invalid phone number length", logger.Fields{
+			"phone_number": phoneNumber,
+			"length":       len(phoneNumber),
+		})
+		return "", fmt.Errorf("invalid phone number length: expected 10-15 digits, got %d", len(phoneNumber))
+	}
+
+	c.logger.Info("requesting pairing code", logger.Fields{
+		"phone_number": phoneNumber,
+		"phone_length": len(phoneNumber),
+		"timeout":      timeout.String(),
+	})
+
+	// Request pairing code
+	// Note: PairPhone expects phone number WITHOUT + sign
+	code, err := c.waClient.PairPhone(ctx, phoneNumber, true, whatsmeow.PairClientChrome, "Chrome (Linux)")
+	if err != nil {
+		c.logger.Error("failed to request pairing code", logger.Fields{
+			"error":        err.Error(),
+			"phone_number": phoneNumber,
+			"phone_length": len(phoneNumber),
+		})
+		return "", fmt.Errorf("failed to request pairing code: %w (phone: %s)", err, phoneNumber)
+	}
+
+	if code == "" {
+		c.logger.Error("pairing code is empty - phone might not be registered on WhatsApp", logger.Fields{
+			"phone_number": phoneNumber,
+		})
+		return "", fmt.Errorf("pairing code is empty - phone number might not be registered on WhatsApp")
+	}
+
+	c.logger.Info("pairing code generated successfully", logger.Fields{
+		"code":        code,
+		"code_length": len(code),
+		"phone":       phoneNumber,
+	})
+
+	return code, nil
+}
+
+// GetQRCode generates and returns a QR code as base64-encoded PNG
+func (c *Client) GetQRCode(ctx context.Context, timeout time.Duration) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Check if already logged in
+	if c.waClient.IsLoggedIn() {
+		return "", fmt.Errorf("already logged in")
+	}
+
+	// If already connected, disconnect first to get a fresh QR code
+	// This prevents blocking on old connections
+	if c.connected {
+		c.logger.Info("disconnecting existing connection for fresh QR code")
+		c.waClient.Disconnect()
+		c.connected = false
+		// Small delay to ensure clean disconnect
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Create a channel to receive QR code
@@ -119,25 +199,38 @@ func (c *Client) GetQRCode(ctx context.Context, timeout time.Duration) (string, 
 		return "", fmt.Errorf("failed to get QR channel: %w", err)
 	}
 
-	// Connect if not connected
-	if !c.connected {
-		if err := c.waClient.Connect(); err != nil {
-			c.logger.Error("failed to connect for QR code", logger.Fields{
-				"error": err.Error(),
-			})
-			return "", fmt.Errorf("failed to connect: %w", err)
-		}
-		c.connected = true
+	// Connect to get QR code
+	if err := c.waClient.Connect(); err != nil {
+		c.logger.Error("failed to connect for QR code", logger.Fields{
+			"error": err.Error(),
+		})
+		return "", fmt.Errorf("failed to connect: %w", err)
 	}
+	c.connected = true
 
 	// Wait for QR code with timeout
+	c.logger.Info("waiting for QR code event", logger.Fields{
+		"timeout": timeout.String(),
+	})
+
 	select {
 	case evt := <-qrChan:
+		c.logger.Info("received QR event", logger.Fields{
+			"event":      evt.Event,
+			"code_length": len(evt.Code),
+		})
+		
 		switch evt.Event {
 		case "code":
+			if evt.Code == "" {
+				c.logger.Error("QR code is empty")
+				return "", fmt.Errorf("QR code is empty")
+			}
 			// Return the QR code string directly
 			// The service layer will handle encoding it to an image
-			c.logger.Info("QR code generated successfully")
+			c.logger.Info("QR code generated successfully", logger.Fields{
+				"qr_code_preview": evt.Code[:20] + "...",
+			})
 			return evt.Code, nil
 
 		case "success":
@@ -152,11 +245,15 @@ func (c *Client) GetQRCode(ctx context.Context, timeout time.Duration) (string, 
 		}
 
 	case <-time.After(timeout):
-		c.logger.Error("QR code generation timeout")
-		return "", fmt.Errorf("QR code generation timeout")
+		c.logger.Error("QR code generation timeout", logger.Fields{
+			"timeout": timeout.String(),
+		})
+		return "", fmt.Errorf("QR code generation timeout after %v", timeout)
 
 	case <-ctx.Done():
-		c.logger.Error("QR code generation cancelled")
+		c.logger.Error("QR code generation cancelled", logger.Fields{
+			"error": ctx.Err().Error(),
+		})
 		return "", ctx.Err()
 	}
 }

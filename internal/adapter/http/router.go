@@ -223,6 +223,7 @@ func (rt *Router) Setup() http.Handler {
 
 						// Get QR code - requires whatsapp:read permission
 						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/{id}/qr", whatsappHandler.GetQRCode)
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/{id}/pairing-code", whatsappHandler.GetPairingCode)
 
 						// Send text message - requires whatsapp:write permission
 						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:write")).Post("/{id}/messages", whatsappHandler.SendTextMessage)
