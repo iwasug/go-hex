@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // Role represents a role entity in the domain
 type Role struct {
@@ -20,10 +24,12 @@ type Role struct {
 func NewRole(name, description string, createdBy string) *Role {
 	now := time.Now()
 	return &Role{
+		ID:          uuid.NewString(),
 		Name:        name,
 		Description: description,
 		IsDeleted:   false,
 		CreatedBy:   &createdBy,
+		UpdatedBy:   &createdBy,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
