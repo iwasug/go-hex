@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // User represents a user entity in the domain
 type User struct {
@@ -21,6 +25,7 @@ type User struct {
 func NewUser(email, password, name string) *User {
 	now := time.Now()
 	return &User{
+		ID:        uuid.NewString(),
 		Email:     email,
 		Password:  password,
 		Name:      name,

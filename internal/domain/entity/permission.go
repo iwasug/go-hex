@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // Permission represents a permission entity in the domain
 type Permission struct {
@@ -15,6 +19,7 @@ type Permission struct {
 // NewPermission creates a new Permission instance
 func NewPermission(name, resource, action, description string) *Permission {
 	return &Permission{
+		ID:          uuid.NewString(),
 		Name:        name,
 		Resource:    resource,
 		Action:      action,
