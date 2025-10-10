@@ -16,6 +16,8 @@ type Config struct {
 	JWT      JWTConfig
 	Bcrypt   BcryptConfig
 	Logging  LoggingConfig
+	Webhook  WebhookConfig
+	WhatsApp WhatsAppConfig
 }
 
 // ServerConfig holds server-related configuration
@@ -55,6 +57,28 @@ type LoggingConfig struct {
 	Format string
 }
 
+// WebhookConfig holds webhook-related configuration
+type WebhookConfig struct {
+	Timeout       time.Duration
+	MaxRetries    int
+	RetryDelay    time.Duration
+	MaxRetryDelay time.Duration
+}
+
+// WhatsAppConfig holds WhatsApp-related configuration
+type WhatsAppConfig struct {
+	Enabled                bool
+	QRTimeout              time.Duration
+	ReconnectInterval      time.Duration
+	MaxReconnectAttempts   int
+	MessageRetentionDays   int
+	MediaMaxSizeMB         int
+	MediaStoragePath       string
+	WebhookTimeout         time.Duration
+	WebhookMaxRetries      int
+	WebhookRetryDelay      time.Duration
+}
+
 // Load loads configuration from environment variables
 // It attempts to load .env file in development mode
 func Load() (*Config, error) {
@@ -88,6 +112,24 @@ func Load() (*Config, error) {
 		Logging: LoggingConfig{
 			Level:  getEnv("LOG_LEVEL", "info"),
 			Format: getEnv("LOG_FORMAT", "json"),
+		},
+		Webhook: WebhookConfig{
+			Timeout:       getEnvAsDuration("WEBHOOK_TIMEOUT", 10*time.Second),
+			MaxRetries:    getEnvAsInt("WEBHOOK_MAX_RETRIES", 3),
+			RetryDelay:    getEnvAsDuration("WEBHOOK_RETRY_DELAY", 5*time.Second),
+			MaxRetryDelay: getEnvAsDuration("WEBHOOK_MAX_RETRY_DELAY", 60*time.Second),
+		},
+		WhatsApp: WhatsAppConfig{
+			Enabled:                getEnvAsBool("WHATSAPP_ENABLED", true),
+			QRTimeout:              getEnvAsDuration("WHATSAPP_QR_TIMEOUT", 60*time.Second),
+			ReconnectInterval:      getEnvAsDuration("WHATSAPP_RECONNECT_INTERVAL", 30*time.Second),
+			MaxReconnectAttempts:   getEnvAsInt("WHATSAPP_MAX_RECONNECT_ATTEMPTS", 5),
+			MessageRetentionDays:   getEnvAsInt("WHATSAPP_MESSAGE_RETENTION_DAYS", 90),
+			MediaMaxSizeMB:         getEnvAsInt("WHATSAPP_MEDIA_MAX_SIZE_MB", 16),
+			MediaStoragePath:       getEnv("WHATSAPP_MEDIA_STORAGE_PATH", "./data/whatsapp/media"),
+			WebhookTimeout:         getEnvAsDuration("WHATSAPP_WEBHOOK_TIMEOUT", 10*time.Second),
+			WebhookMaxRetries:      getEnvAsInt("WHATSAPP_WEBHOOK_MAX_RETRIES", 3),
+			WebhookRetryDelay:      getEnvAsDuration("WHATSAPP_WEBHOOK_RETRY_DELAY", 5*time.Second),
 		},
 	}
 
@@ -158,6 +200,37 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("LOG_FORMAT must be one of: json, text")
 	}
 
+	// Validate WhatsApp config
+	if c.WhatsApp.Enabled {
+		if c.WhatsApp.QRTimeout <= 0 {
+			return fmt.Errorf("WHATSAPP_QR_TIMEOUT must be positive")
+		}
+		if c.WhatsApp.ReconnectInterval <= 0 {
+			return fmt.Errorf("WHATSAPP_RECONNECT_INTERVAL must be positive")
+		}
+		if c.WhatsApp.MaxReconnectAttempts < 0 {
+			return fmt.Errorf("WHATSAPP_MAX_RECONNECT_ATTEMPTS must be non-negative")
+		}
+		if c.WhatsApp.MessageRetentionDays < 0 {
+			return fmt.Errorf("WHATSAPP_MESSAGE_RETENTION_DAYS must be non-negative")
+		}
+		if c.WhatsApp.MediaMaxSizeMB <= 0 {
+			return fmt.Errorf("WHATSAPP_MEDIA_MAX_SIZE_MB must be positive")
+		}
+		if c.WhatsApp.MediaStoragePath == "" {
+			return fmt.Errorf("WHATSAPP_MEDIA_STORAGE_PATH is required when WhatsApp is enabled")
+		}
+		if c.WhatsApp.WebhookTimeout <= 0 {
+			return fmt.Errorf("WHATSAPP_WEBHOOK_TIMEOUT must be positive")
+		}
+		if c.WhatsApp.WebhookMaxRetries < 0 {
+			return fmt.Errorf("WHATSAPP_WEBHOOK_MAX_RETRIES must be non-negative")
+		}
+		if c.WhatsApp.WebhookRetryDelay <= 0 {
+			return fmt.Errorf("WHATSAPP_WEBHOOK_RETRY_DELAY must be positive")
+		}
+	}
+
 	return nil
 }
 
@@ -216,6 +289,21 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 	}
 
 	value, err := time.ParseDuration(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+
+	return value
+}
+
+// getEnvAsBool gets an environment variable as bool or returns a default value
+func getEnvAsBool(key string, defaultValue bool) bool {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.ParseBool(valueStr)
 	if err != nil {
 		return defaultValue
 	}

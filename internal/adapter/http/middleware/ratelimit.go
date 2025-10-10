@@ -67,6 +67,7 @@ func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 
 		if !limiter.Allow() {
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Retry-After", "60") // Suggest retry after 60 seconds
 			w.WriteHeader(http.StatusTooManyRequests)
 			w.Write([]byte(`{"error":{"code":"RATE_LIMIT_EXCEEDED","message":"Too many requests. Please try again later."}}`))
 			return

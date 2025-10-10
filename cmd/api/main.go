@@ -95,6 +95,16 @@ func main() {
 	router := httpAdapter.NewRouter(cfg, db)
 	handler := router.Setup()
 
+	// Initialize and restore WhatsApp clients
+	if err := router.InitializeWhatsApp(context.Background()); err != nil {
+		log.Error("Failed to initialize WhatsApp service", logger.Fields{
+			"error": err.Error(),
+		})
+		// Don't exit - WhatsApp is optional, continue without it
+	} else {
+		log.Info("WhatsApp service initialized successfully")
+	}
+
 	// Setup HTTP server with graceful shutdown
 	server := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
@@ -135,6 +145,17 @@ func main() {
 		// Create context with timeout for graceful shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+
+		// Shutdown WhatsApp clients first
+		log.Info("Shutting down WhatsApp clients...")
+		if err := router.ShutdownWhatsApp(ctx); err != nil {
+			log.Error("Error shutting down WhatsApp clients", logger.Fields{
+				"error": err.Error(),
+			})
+			// Continue with server shutdown even if WhatsApp shutdown fails
+		} else {
+			log.Info("WhatsApp clients shut down successfully")
+		}
 
 		// Attempt graceful shutdown
 		if err := server.Shutdown(ctx); err != nil {

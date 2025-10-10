@@ -42,6 +42,18 @@ func TestHealthCheckEndpoint(t *testing.T) {
 			Level:  "info",
 			Format: "json",
 		},
+		WhatsApp: config.WhatsAppConfig{
+			Enabled:                true,
+			QRTimeout:              60 * time.Second,
+			ReconnectInterval:      30 * time.Second,
+			MaxReconnectAttempts:   5,
+			MessageRetentionDays:   90,
+			MediaMaxSizeMB:         16,
+			MediaStoragePath:       t.TempDir(), // Use temp directory for tests
+			WebhookTimeout:         10 * time.Second,
+			WebhookMaxRetries:      3,
+			WebhookRetryDelay:      5 * time.Second,
+		},
 	}
 
 	// Create a mock DB (we don't need actual connection for health check test)
@@ -104,6 +116,18 @@ func TestRouterSetup(t *testing.T) {
 		Logging: config.LoggingConfig{
 			Level:  "info",
 			Format: "json",
+		},
+		WhatsApp: config.WhatsAppConfig{
+			Enabled:                true,
+			QRTimeout:              60 * time.Second,
+			ReconnectInterval:      30 * time.Second,
+			MaxReconnectAttempts:   5,
+			MessageRetentionDays:   90,
+			MediaMaxSizeMB:         16,
+			MediaStoragePath:       t.TempDir(), // Use temp directory for tests
+			WebhookTimeout:         10 * time.Second,
+			WebhookMaxRetries:      3,
+			WebhookRetryDelay:      5 * time.Second,
 		},
 	}
 

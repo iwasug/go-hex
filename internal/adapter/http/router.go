@@ -4,6 +4,8 @@
 package http
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -15,16 +17,23 @@ import (
 
 	"golang-chi-hexagonal-base/internal/adapter/crypto"
 	"golang-chi-hexagonal-base/internal/adapter/http/handler"
+	mediaadapter "golang-chi-hexagonal-base/internal/adapter/media"
 	custommiddleware "golang-chi-hexagonal-base/internal/adapter/http/middleware"
 	"golang-chi-hexagonal-base/internal/adapter/postgres"
+	"golang-chi-hexagonal-base/internal/adapter/webhook"
+	"golang-chi-hexagonal-base/internal/adapter/whatsapp"
 	"golang-chi-hexagonal-base/internal/config"
 	"golang-chi-hexagonal-base/internal/domain/service"
+	"golang-chi-hexagonal-base/internal/pkg/logger"
+	"golang-chi-hexagonal-base/internal/pkg/media"
+	webhookpkg "golang-chi-hexagonal-base/internal/pkg/webhook"
 )
 
 // Router holds all dependencies for HTTP routing
 type Router struct {
-	config *config.Config
-	db     *postgres.DB
+	config        *config.Config
+	db            *postgres.DB
+	clientManager *whatsapp.ClientManager
 }
 
 // NewRouter creates a new Router instance
@@ -59,6 +68,8 @@ func (rt *Router) Setup() http.Handler {
 	roleRepo := postgres.NewRoleRepository(rt.db)
 	permissionRepo := postgres.NewPermissionRepository(rt.db)
 	tokenRepo := postgres.NewTokenRepository(rt.db)
+	whatsappSessionRepo := postgres.NewWhatsAppSessionRepository(rt.db)
+	whatsappMessageRepo := postgres.NewWhatsAppMessageRepository(rt.db)
 
 	// Crypto adapters
 	bcryptHasher := crypto.NewBcryptHasher(rt.config.Bcrypt.Cost)
@@ -73,11 +84,55 @@ func (rt *Router) Setup() http.Handler {
 	userService := service.NewUserService(userRepo, roleRepo)
 	roleService := service.NewRoleService(roleRepo, permissionRepo)
 
+	// WhatsApp adapters and services
+	log := logger.NewFromConfig(rt.config.Logging.Level, rt.config.Logging.Format)
+	
+	// Initialize WhatsApp client manager
+	rt.clientManager = whatsapp.NewClientManager(
+		rt.db.DB, // Get underlying *sql.DB
+		whatsappSessionRepo,
+		whatsappMessageRepo,
+		log,
+	)
+	
+	// Wrap client manager with adapter to satisfy service interface
+	clientManager := whatsapp.NewClientManagerAdapter(rt.clientManager)
+	
+	// Initialize webhook client
+	webhookConfig := webhookpkg.DefaultConfig()
+	webhookClient := webhook.NewClientAdapter(webhookConfig, log)
+	
+	// Initialize media manager
+	mediaManager, err := media.NewManager(
+		rt.config.WhatsApp.MediaStoragePath,
+		rt.config.WhatsApp.MediaMaxSizeMB,
+	)
+	if err != nil {
+		log.Error("Failed to initialize media manager", logger.Fields{
+			"error": err.Error(),
+		})
+		panic(err)
+	}
+	mediaAdapter := mediaadapter.NewManagerAdapter(mediaManager)
+	
+	// Initialize WhatsApp service
+	whatsappService := service.NewWhatsAppService(
+		whatsappSessionRepo,
+		whatsappMessageRepo,
+		userRepo,
+		clientManager,
+		webhookClient,
+		mediaAdapter,
+		log,
+	)
+
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	roleHandler := handler.NewRoleHandler(roleService)
 	healthHandler := handler.NewHealthHandler(rt.db)
+	healthHandler.SetClientManager(rt.clientManager) // Set WhatsApp client manager for health checks
+	whatsappHandler := handler.NewWhatsAppHandler(whatsappService)
 
 	// Health check and observability endpoints
 	r.Get("/health", healthHandler.Health)
@@ -104,6 +159,8 @@ func (rt *Router) Setup() http.Handler {
 		r.Group(func(r chi.Router) {
 			// Apply auth middleware
 			r.Use(custommiddleware.Auth(jwtManager))
+			// Inject admin status for all protected routes
+			r.Use(custommiddleware.InjectAdminStatus(userRepo))
 
 			// User routes
 			r.Route("/users", func(r chi.Router) {
@@ -143,6 +200,47 @@ func (rt *Router) Setup() http.Handler {
 				// Delete role - requires roles:delete permission
 				r.With(custommiddleware.RequirePermission(userRepo, "roles:delete")).Delete("/{id}", roleHandler.Delete)
 			})
+
+			// WhatsApp routes
+			r.Route("/whatsapp", func(r chi.Router) {
+				r.Route("/sessions", func(r chi.Router) {
+					// Create session - requires whatsapp:write permission
+					r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:write")).Post("/", whatsappHandler.CreateSession)
+
+					// List sessions - requires whatsapp:read permission
+					r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/", whatsappHandler.ListSessions)
+
+					// Session-specific routes with ownership validation
+					r.Group(func(r chi.Router) {
+						// Apply session ownership validation middleware
+						r.Use(custommiddleware.ValidateSessionOwnership(whatsappSessionRepo))
+
+						// Get session by ID - requires whatsapp:read permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/{id}", whatsappHandler.GetSession)
+
+						// Delete session - requires whatsapp:delete permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:delete")).Delete("/{id}", whatsappHandler.DeleteSession)
+
+						// Get QR code - requires whatsapp:read permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/{id}/qr", whatsappHandler.GetQRCode)
+
+						// Send text message - requires whatsapp:write permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:write")).Post("/{id}/messages", whatsappHandler.SendTextMessage)
+
+						// Send media message - requires whatsapp:write permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:write")).Post("/{id}/media", whatsappHandler.SendMediaMessage)
+
+						// Get message history - requires whatsapp:read permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/{id}/messages", whatsappHandler.GetMessages)
+
+						// Reconnect session - requires whatsapp:write permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:write")).Post("/{id}/reconnect", whatsappHandler.ReconnectSession)
+
+						// Get session status - requires whatsapp:read permission
+						r.With(custommiddleware.RequirePermission(userRepo, "whatsapp:read")).Get("/{id}/status", whatsappHandler.GetSessionStatus)
+					})
+				})
+			})
 		})
 	})
 
@@ -160,4 +258,38 @@ func (rt *Router) corsMiddleware() func(http.Handler) http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	})
+}
+
+// InitializeWhatsApp initializes the WhatsApp service and restores connected clients
+func (rt *Router) InitializeWhatsApp(ctx context.Context) error {
+	if rt.clientManager == nil {
+		return fmt.Errorf("WhatsApp client manager not initialized")
+	}
+
+	// Restore all connected sessions from database
+	if err := rt.clientManager.RestoreClients(ctx); err != nil {
+		return fmt.Errorf("failed to restore WhatsApp clients: %w", err)
+	}
+
+	return nil
+}
+
+// ShutdownWhatsApp gracefully shuts down all WhatsApp clients
+func (rt *Router) ShutdownWhatsApp(ctx context.Context) error {
+	if rt.clientManager == nil {
+		// WhatsApp not initialized, nothing to shutdown
+		return nil
+	}
+
+	// Shutdown all active clients
+	if err := rt.clientManager.Shutdown(ctx); err != nil {
+		return fmt.Errorf("failed to shutdown WhatsApp clients: %w", err)
+	}
+
+	return nil
+}
+
+// GetClientManager returns the WhatsApp client manager for health checks
+func (rt *Router) GetClientManager() *whatsapp.ClientManager {
+	return rt.clientManager
 }

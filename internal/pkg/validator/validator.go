@@ -214,3 +214,16 @@ func IsValidPassword(password string) bool {
 
 	return hasUpper && hasLower && hasDigit
 }
+
+// ValidateURL validates a URL format
+func (v *Validator) ValidateURL(field, url string) {
+	if url == "" {
+		return // Empty URLs are handled by ValidateRequired if needed
+	}
+
+	// Simple URL validation - must start with http:// or https://
+	urlRegex := regexp.MustCompile(`^https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+$`)
+	if !urlRegex.MatchString(url) {
+		v.errors.Add(field, fmt.Sprintf("%s must be a valid URL (http:// or https://)", field))
+	}
+}
