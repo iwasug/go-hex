@@ -1,5 +1,11 @@
 .PHONY: help run build test test-coverage lint migrate-up migrate-down migrate-create clean dev docker-build docker-up docker-down swagger
 
+# Load environment variables from .env file if it exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 # Default target
 help:
 	@echo "Available commands:"
