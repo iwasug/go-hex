@@ -319,7 +319,34 @@ CREATE DATABASE myapp;
 \q
 ```
 
-### Run Migrations
+### Auto-Migration
+
+The application supports **automatic database migrations** on startup. This is enabled by default and can be configured via environment variables:
+
+```env
+# Enable/disable auto-migration (default: true)
+DB_AUTO_MIGRATE=true
+
+# Path to migration files (default: migrations)
+DB_MIGRATIONS_PATH=migrations
+```
+
+When `DB_AUTO_MIGRATE=true`, the application will:
+1. Connect to the database
+2. Automatically run all pending migrations from the `migrations/` directory
+3. Log the current migration version
+4. Start the HTTP server
+
+This is the **recommended approach** for development and production deployments, as it ensures your database schema is always up-to-date.
+
+**To disable auto-migration:**
+```env
+DB_AUTO_MIGRATE=false
+```
+
+### Manual Migrations
+
+If you prefer to run migrations manually, you can disable auto-migration and use one of the following methods:
 
 The project includes database migration files in the `migrations/` directory.
 

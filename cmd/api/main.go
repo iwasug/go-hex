@@ -91,6 +91,40 @@ func main() {
 
 	log.Info("Database connection established successfully")
 
+	// Run database migrations if enabled
+	if cfg.Database.AutoMigrate {
+		log.Info("Running database migrations...", logger.Fields{
+			"migrations_path": cfg.Database.MigrationsPath,
+		})
+
+		migrateConfig := postgres.MigrateConfig{
+			MigrationsPath: cfg.Database.MigrationsPath,
+			Enabled:        cfg.Database.AutoMigrate,
+		}
+
+		if err := postgres.RunMigrations(db.DB, migrateConfig); err != nil {
+			log.Error("Failed to run migrations", logger.Fields{
+				"error": err.Error(),
+			})
+			os.Exit(1)
+		}
+
+		// Get and log current migration version
+		version, dirty, err := postgres.GetMigrationVersion(db.DB, migrateConfig)
+		if err != nil {
+			log.Warn("Failed to get migration version", logger.Fields{
+				"error": err.Error(),
+			})
+		} else {
+			log.Info("Database migrations completed", logger.Fields{
+				"version": version,
+				"dirty":   dirty,
+			})
+		}
+	} else {
+		log.Info("Auto-migration is disabled")
+	}
+
 	// Setup HTTP router with all dependencies
 	router := httpAdapter.NewRouter(cfg, db)
 	handler := router.Setup()

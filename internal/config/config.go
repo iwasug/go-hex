@@ -35,6 +35,8 @@ type DatabaseConfig struct {
 	MaxOpenConns    int
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
+	AutoMigrate     bool
+	MigrationsPath  string
 }
 
 // JWTConfig holds JWT-related configuration
@@ -76,6 +78,8 @@ func Load() (*Config, error) {
 			MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
 			MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
 			ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
+			AutoMigrate:     getEnvAsBool("DB_AUTO_MIGRATE", true),
+			MigrationsPath:  getEnv("DB_MIGRATIONS_PATH", "migrations"),
 		},
 		JWT: JWTConfig{
 			Secret:             getEnv("JWT_SECRET", ""),
@@ -216,6 +220,21 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 	}
 
 	value, err := time.ParseDuration(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+
+	return value
+}
+
+// getEnvAsBool gets an environment variable as bool or returns a default value
+func getEnvAsBool(key string, defaultValue bool) bool {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.ParseBool(valueStr)
 	if err != nil {
 		return defaultValue
 	}

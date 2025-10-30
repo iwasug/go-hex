@@ -44,7 +44,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.ForgotPasswordRequest"
+                            "$ref": "#/definitions/request.ForgotPasswordRequest"
                         }
                     }
                 ],
@@ -52,19 +52,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Password reset email sent (if email exists)",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -90,7 +90,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.LoginRequest"
+                            "$ref": "#/definitions/request.LoginRequest"
                         }
                     }
                 ],
@@ -98,25 +98,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Login successful",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.AuthResponse"
+                            "$ref": "#/definitions/response.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials or user deleted",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -142,7 +142,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.LogoutRequest"
+                            "$ref": "#/definitions/request.LogoutRequest"
                         }
                     }
                 ],
@@ -150,19 +150,65 @@ const docTemplate = `{
                     "200": {
                         "description": "Logout successful",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get information about the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get current user",
+                "responses": {
+                    "200": {
+                        "description": "Current user information",
+                        "schema": {
+                            "$ref": "#/definitions/response.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -188,7 +234,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.RefreshTokenRequest"
+                            "$ref": "#/definitions/request.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -196,25 +242,25 @@ const docTemplate = `{
                     "200": {
                         "description": "New access token",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RefreshTokenResponse"
+                            "$ref": "#/definitions/response.RefreshTokenResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid or expired refresh token",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -240,7 +286,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.RegisterRequest"
+                            "$ref": "#/definitions/request.RegisterRequest"
                         }
                     }
                 ],
@@ -248,25 +294,25 @@ const docTemplate = `{
                     "201": {
                         "description": "User created successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse"
+                            "$ref": "#/definitions/response.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -292,7 +338,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.ResetPasswordRequest"
+                            "$ref": "#/definitions/request.ResetPasswordRequest"
                         }
                     }
                 ],
@@ -300,19 +346,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Password reset successful",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid or expired reset token",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -368,32 +414,32 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse"
+                                "$ref": "#/definitions/response.RoleResponse"
                             }
                         }
                     },
                     "400": {
                         "description": "Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires roles:read permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -422,7 +468,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.CreateRoleRequest"
+                            "$ref": "#/definitions/request.CreateRoleRequest"
                         }
                     }
                 ],
@@ -430,37 +476,37 @@ const docTemplate = `{
                     "201": {
                         "description": "Role created successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse"
+                            "$ref": "#/definitions/response.RoleResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires roles:write permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Role with this name already exists",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -497,37 +543,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Role details",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse"
+                            "$ref": "#/definitions/response.RoleResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid role ID",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires roles:read permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Role not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -563,7 +609,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.UpdateRoleRequest"
+                            "$ref": "#/definitions/request.UpdateRoleRequest"
                         }
                     }
                 ],
@@ -571,43 +617,43 @@ const docTemplate = `{
                     "200": {
                         "description": "Updated role",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse"
+                            "$ref": "#/definitions/response.RoleResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires roles:write permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Role not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Role with this name already exists",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -642,43 +688,43 @@ const docTemplate = `{
                     "200": {
                         "description": "Role deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid role ID",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires roles:delete permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Role not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Role is in use and cannot be deleted",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -746,31 +792,31 @@ const docTemplate = `{
                     "200": {
                         "description": "List of users",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PaginatedResponse"
+                            "$ref": "#/definitions/response.PaginatedResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires users:read permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -807,37 +853,37 @@ const docTemplate = `{
                     "200": {
                         "description": "User details",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse"
+                            "$ref": "#/definitions/response.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid user ID",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires users:read permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -873,7 +919,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.UpdateUserRequest"
+                            "$ref": "#/definitions/request.UpdateUserRequest"
                         }
                     }
                 ],
@@ -881,43 +927,43 @@ const docTemplate = `{
                     "200": {
                         "description": "Updated user",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse"
+                            "$ref": "#/definitions/response.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires users:write permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -952,37 +998,37 @@ const docTemplate = `{
                     "200": {
                         "description": "User deleted successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid user ID",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires users:delete permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -1020,7 +1066,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_request.AssignRoleRequest"
+                            "$ref": "#/definitions/request.AssignRoleRequest"
                         }
                     }
                 ],
@@ -1028,43 +1074,43 @@ const docTemplate = `{
                     "200": {
                         "description": "Role assigned successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid input",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires users:write permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User or role not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Role already assigned",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -1108,37 +1154,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Role removed successfully",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse"
+                            "$ref": "#/definitions/response.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid user ID or role ID",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - requires users:write permission",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User or role not found",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -1146,7 +1192,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "golang-chi-hexagonal-base_internal_adapter_http_request.AssignRoleRequest": {
+        "request.AssignRoleRequest": {
             "type": "object",
             "properties": {
                 "role_id": {
@@ -1154,7 +1200,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.CreateRoleRequest": {
+        "request.CreateRoleRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1171,7 +1217,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.ForgotPasswordRequest": {
+        "request.ForgotPasswordRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1179,7 +1225,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.LoginRequest": {
+        "request.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1190,7 +1236,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.LogoutRequest": {
+        "request.LogoutRequest": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -1198,7 +1244,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.RefreshTokenRequest": {
+        "request.RefreshTokenRequest": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -1206,7 +1252,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.RegisterRequest": {
+        "request.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1220,7 +1266,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.ResetPasswordRequest": {
+        "request.ResetPasswordRequest": {
             "type": "object",
             "properties": {
                 "new_password": {
@@ -1231,7 +1277,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.UpdateRoleRequest": {
+        "request.UpdateRoleRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1242,7 +1288,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_request.UpdateUserRequest": {
+        "request.UpdateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1253,7 +1299,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.AuthResponse": {
+        "response.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -1261,13 +1307,10 @@ const docTemplate = `{
                 },
                 "refresh_token": {
                     "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse"
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.ErrorDetail": {
+        "response.ErrorDetail": {
             "type": "object",
             "properties": {
                 "code": {
@@ -1282,32 +1325,35 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.ErrorResponse": {
+        "response.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
-                    "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.ErrorDetail"
+                    "$ref": "#/definitions/response.ErrorDetail"
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.MessageResponse": {
+        "response.MessageResponse": {
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.PaginatedResponse": {
+        "response.PaginatedResponse": {
             "type": "object",
             "properties": {
                 "data": {},
                 "pagination": {
-                    "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.Pagination"
+                    "$ref": "#/definitions/response.Pagination"
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.Pagination": {
+        "response.Pagination": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -1324,7 +1370,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.PermissionResponse": {
+        "response.PermissionResponse": {
             "type": "object",
             "properties": {
                 "action": {
@@ -1347,7 +1393,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.RefreshTokenResponse": {
+        "response.RefreshTokenResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -1355,7 +1401,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse": {
+        "response.RoleResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1379,7 +1425,7 @@ const docTemplate = `{
                 "permissions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.PermissionResponse"
+                        "$ref": "#/definitions/response.PermissionResponse"
                     }
                 },
                 "updated_at": {
@@ -1387,7 +1433,7 @@ const docTemplate = `{
                 }
             }
         },
-        "golang-chi-hexagonal-base_internal_adapter_http_response.UserResponse": {
+        "response.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1411,7 +1457,7 @@ const docTemplate = `{
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/golang-chi-hexagonal-base_internal_adapter_http_response.RoleResponse"
+                        "$ref": "#/definitions/response.RoleResponse"
                     }
                 },
                 "updated_at": {

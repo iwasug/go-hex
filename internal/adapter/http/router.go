@@ -74,7 +74,7 @@ func (rt *Router) Setup() http.Handler {
 	roleService := service.NewRoleService(roleRepo, permissionRepo)
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthHandler(authService, userService)
 	userHandler := handler.NewUserHandler(userService)
 	roleHandler := handler.NewRoleHandler(roleService)
 	healthHandler := handler.NewHealthHandler(rt.db)
@@ -90,14 +90,21 @@ func (rt *Router) Setup() http.Handler {
 
 	// API routes
 	r.Route("/api/v1", func(r chi.Router) {
-		// Public routes (auth endpoints)
+		// Auth routes (both public and protected)
 		r.Route("/auth", func(r chi.Router) {
+			// Public auth endpoints
 			r.Post("/register", authHandler.Register)
 			r.Post("/login", authHandler.Login)
 			r.Post("/refresh", authHandler.RefreshToken)
 			r.Post("/forgot-password", authHandler.ForgotPassword)
 			r.Post("/reset-password", authHandler.ResetPassword)
 			r.Post("/logout", authHandler.Logout)
+
+			// Protected auth endpoints
+			r.Group(func(r chi.Router) {
+				r.Use(custommiddleware.Auth(jwtManager))
+				r.Get("/me", authHandler.Me)
+			})
 		})
 
 		// Protected routes (require authentication)

@@ -12,6 +12,7 @@ type User struct {
 	Email     string
 	Password  string // hashed password
 	Name      string
+	Roles     []*Role // User roles
 	IsDeleted bool
 	CreatedBy *string
 	UpdatedBy *string

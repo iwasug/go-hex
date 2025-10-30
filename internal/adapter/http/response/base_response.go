@@ -50,3 +50,9 @@ func NewSuccessPaginatedResponse(message string, data interface{}, pagination Pa
 		},
 	}
 }
+
+// MessageResponse represents a simple message response without data
+type MessageResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}

@@ -1,10 +1,9 @@
 package response
 
-// AuthResponse represents the response for login/register
+// AuthResponse represents the response for login
 type AuthResponse struct {
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
-	User         UserResponse `json:"user"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 // RefreshTokenResponse represents the response for refresh token

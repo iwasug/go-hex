@@ -15,12 +15,14 @@ import (
 // AuthHandler handles authentication-related HTTP requests
 type AuthHandler struct {
 	authService *service.AuthService
+	userService *service.UserService
 }
 
 // NewAuthHandler creates a new AuthHandler instance
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, userService *service.UserService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		userService: userService,
 	}
 }
 
@@ -123,7 +125,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	respondSuccess(w, http.StatusOK, "Login successful", response.AuthResponse{
 		AccessToken:  loginResp.AccessToken,
 		RefreshToken: loginResp.RefreshToken,
-		User:         toUserResponse(loginResp.User),
 	})
 }
 
@@ -299,12 +300,69 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	respondSuccess(w, http.StatusOK, "Logged out successfully", nil)
 }
 
+// Me handles getting current authenticated user information
+// @Summary Get current user
+// @Description Get information about the currently authenticated user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.UserResponse "Current user information"
+// @Failure 401 {object} response.ErrorResponse "Unauthorized"
+// @Failure 404 {object} response.ErrorResponse "User not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /auth/me [get]
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from context (set by auth middleware)
+	userID := r.Context().Value("user_id")
+	if userID == nil {
+		respondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "User ID not found in context", nil)
+		return
+	}
+
+	// Call service to get user details
+	user, err := h.userService.GetByID(r.Context(), userID.(string))
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			respondError(w, http.StatusNotFound, "NOT_FOUND", "User not found", nil)
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to get user", nil)
+		return
+	}
+
+	// Get user roles
+	roles, err := h.userService.GetUserRoles(r.Context(), user.ID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to get user roles", nil)
+		return
+	}
+	user.Roles = roles
+
+	// Return response
+	respondSuccess(w, http.StatusOK, "User retrieved successfully", toUserResponse(user))
+}
+
 // toUserResponse converts entity.User to response.UserResponse
 func toUserResponse(user *entity.User) response.UserResponse {
+	var roles []response.RoleResponse
+	for _, role := range user.Roles {
+		roles = append(roles, response.RoleResponse{
+			ID:          role.ID,
+			Name:        role.Name,
+			Description: role.Description,
+			IsDeleted:   role.IsDeleted,
+			CreatedAt:   role.CreatedAt,
+			UpdatedAt:   role.UpdatedAt,
+			DeletedAt:   role.DeletedAt,
+		})
+	}
+
 	return response.UserResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		Name:      user.Name,
+		Roles:     roles,
 		IsDeleted: user.IsDeleted,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
